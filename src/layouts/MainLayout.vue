@@ -81,7 +81,7 @@
             flat
             label="Serviços"
             color="primary"
-            to="/services"
+            to="/beauty-services"
             class="q-mb-sm mobile-nav-btn"
             @click="mobileMenuOpen = false"
           />
