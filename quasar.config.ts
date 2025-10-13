@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 export default defineConfig((ctx) => {
   return {
+    warnings: true,
+    errors: true,
+    fix: true,
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
 
@@ -104,7 +107,6 @@ export default defineConfig((ctx) => {
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
       config: {},
-
       // iconSet: 'material-icons', // Quasar icon set
       // lang: 'en-US', // Quasar language pack
 
@@ -116,7 +118,7 @@ export default defineConfig((ctx) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: ['Notify', 'Notify'],
     },
 
     // animations: 'all', // --- includes all animations
