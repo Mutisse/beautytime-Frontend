@@ -22,8 +22,8 @@
       </div>
 
       <div class="hero-content container">
-        <div class="row items-center">
-          <!-- Conteúdo principal à direita -->
+        <div class="row">
+          <!-- Conteúdo principal à EXTREMA DIREITA -->
           <div class="col-12 col-md-8 col-lg-6 content-right">
             <!-- Badge animado -->
             <div class="hero-badge animated-fade-in">
@@ -75,26 +75,21 @@
               />
             </div>
           </div>
+        </div>
 
-          <!-- Espaço vazio à esquerda para os cards -->
-          <div class="col-12 col-md-4 col-lg-6 hero-visual">
-            <div class="visual-container">
-              <div class="floating-image">
-                <!-- Cards flutuantes -->
-                <div class="floating-card card-1">
-                  <q-icon name="verified" color="positive" size="16px" class="q-mr-xs" />
-                  <span class="card-text">Profissionais Verificados</span>
-                </div>
-                <div class="floating-card card-2">
-                  <q-icon name="star" color="amber" size="16px" class="q-mr-xs" />
-                  <span class="card-text">Avaliação 5★</span>
-                </div>
-                <div class="floating-card card-3">
-                  <q-icon name="schedule" color="primary" size="16px" class="q-mr-xs" />
-                  <span class="card-text">Agendamento Rápido</span>
-                </div>
-              </div>
-            </div>
+        <!-- Cards CENTRALIZADOS -->
+        <div class="floating-cards-container">
+          <div class="floating-card card-1">
+            <q-icon name="verified" color="positive" size="16px" class="q-mr-xs" />
+            <span class="card-text">Profissionais Verificados</span>
+          </div>
+          <div class="floating-card card-2">
+            <q-icon name="star" color="amber" size="16px" class="q-mr-xs" />
+            <span class="card-text">Avaliação 5★</span>
+          </div>
+          <div class="floating-card card-3">
+            <q-icon name="schedule" color="primary" size="16px" class="q-mr-xs" />
+            <span class="card-text">Agendamento Rápido</span>
           </div>
         </div>
 
@@ -133,6 +128,15 @@
     <section class="section app-demo-section bg-white" id="how-it-works">
       <div class="container">
         <div class="app-demo-content">
+          <div class="demo-visual">
+            <div class="floating-image">
+              <q-img
+                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d"
+                alt="Demonstração do app"
+                class="demo-image"
+              />
+            </div>
+          </div>
           <div class="demo-text">
             <h2 class="section-title text-weight-bold animated-slide-right">Como funciona</h2>
             <p class="section-subtitle text-grey-7 animated-slide-right delay-1">
@@ -152,16 +156,6 @@
                   <p class="step-description text-grey-7">{{ step.description }}</p>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="demo-visual">
-            <div class="floating-image">
-              <q-img
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d"
-                alt="Demonstração do app"
-                class="demo-image"
-              />
             </div>
           </div>
         </div>
@@ -779,7 +773,7 @@ $large-mobile: 600px;
   }
 }
 
-// Hero Section
+// Hero Section - MODIFICADO PARA DIREITA
 .hero-section {
   position: relative;
   min-height: 100vh;
@@ -811,9 +805,9 @@ $large-mobile: 600px;
     height: 100%;
     background: linear-gradient(
       to right,
-      rgba(0, 0, 0, 0.8) 0%,
-      rgba(0, 0, 0, 0.4) 50%,
-      rgba(0, 0, 0, 0.2) 100%
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.1) 60%,
+      rgba(0, 0, 0, 0.8) 100%
     );
 
     @include mobile {
@@ -844,22 +838,26 @@ $large-mobile: 600px;
 .hero-content {
   position: relative;
   z-index: 1;
-  height: 100%;
+  height: 100vh;
   display: flex;
   align-items: center;
-  padding: 120px 0 80px;
+  justify-content: flex-end; // FORÇA para a DIREITA
 
   @include mobile {
     padding: 100px 0 60px;
+    justify-content: center;
   }
 }
 
-// Conteúdo à direita
+// Conteúdo à DIREITA
 .content-right {
-  text-align: left;
+  text-align: right; // Texto alinhado à DIREITA
+  margin-left: auto; // Empurra para a DIREITA
+  padding-right: 0;
 
   @include mobile {
     text-align: center;
+    margin-left: 0;
   }
 }
 
@@ -939,6 +937,7 @@ $large-mobile: 600px;
   display: flex;
   gap: 40px;
   margin: 30px 0;
+  justify-content: flex-end; // Estatísticas à DIREITA
 
   @include tablet {
     gap: 30px;
@@ -987,6 +986,7 @@ $large-mobile: 600px;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  justify-content: flex-end; // Botões à DIREITA
 
   @include mobile {
     justify-content: center;
@@ -1024,32 +1024,23 @@ $large-mobile: 600px;
   animation: glow 2s ease-in-out infinite;
 }
 
-// Hero Visual
-.hero-visual {
-  @include mobile {
-    margin-top: 40px;
-  }
-}
-
-.visual-container {
-  position: relative;
-  height: 500px;
-
-  @include tablet {
-    height: 400px;
-  }
+// Container para os cards flutuantes - AGORA CENTRALIZADO
+.floating-cards-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 200px;
+  pointer-events: none;
 
   @include mobile {
-    height: 300px;
+    height: 150px;
   }
 }
 
-.floating-image {
-  position: relative;
-  animation: float 6s ease-in-out infinite;
-}
-
-// Cards flutuantes
+// Cards flutuantes - AGORA CENTRALIZADOS
+// Cards flutuantes ajustados
 .floating-card {
   position: absolute;
   background: rgba(255, 255, 255, 0.95);
@@ -1076,92 +1067,28 @@ $large-mobile: 600px;
     backdrop-filter: blur(5px);
   }
 
-  @include small-mobile {
-    padding: 6px 10px;
-    font-size: 0.7rem;
-    gap: 6px;
-  }
-
-  .card-text {
-    white-space: nowrap;
-
-    @include small-mobile {
-      font-size: 0.65rem;
-    }
-  }
-
-  // Card 1 - Topo direito
+  // Card 1 - Topo esquerdo (dentro do container)
   &.card-1 {
     top: 20%;
-    left: 80%;
-    transform: translateX(-50%);
+    left: 20%;
     animation-delay: 0s;
 
-    @include tablet {
-      top: 25%;
-      left: 75%;
-    }
-
     @include mobile {
-      top: 20%;
-      left: 70%;
-      transform: translateX(-50%) scale(0.9);
-    }
-
-    @include small-mobile {
       top: 15%;
-      left: 65%;
-      transform: translateX(-50%) scale(0.8);
+      left: 10%;
     }
   }
 
-  // Card 2 - Centro direito
+  // Card 2 - Centro
   &.card-2 {
     top: 50%;
-    left: 70%;
-    transform: translateX(-50%);
+    left: 50%;
+    transform: translate(-50%, -50%);
     animation-delay: 2s;
 
-    @include tablet {
-      top: 55%;
-      left: 65%;
-    }
-
     @include mobile {
-      top: 50%;
-      left: 60%;
-      transform: translateX(-50%) scale(0.9);
-    }
-
-    @include small-mobile {
       top: 45%;
-      left: 55%;
-      transform: translateX(-50%) scale(0.8);
-    }
-  }
-
-  // Card 3 - Base direita
-  &.card-3 {
-    top: 80%;
-    left: 60%;
-    transform: translateX(-50%);
-    animation-delay: 1s;
-
-    @include tablet {
-      top: 85%;
-      left: 55%;
-    }
-
-    @include mobile {
-      top: 80%;
-      left: 50%;
-      transform: translateX(-50%) scale(0.9);
-    }
-
-    @include small-mobile {
-      top: 75%;
       left: 45%;
-      transform: translateX(-50%) scale(0.8);
     }
   }
 }
@@ -1294,12 +1221,16 @@ $large-mobile: 600px;
   }
 
   .demo-text {
+    order: 2;
+
     @include mobile {
       order: 2;
     }
   }
 
   .demo-visual {
+    order: 1;
+
     @include mobile {
       order: 1;
     }
@@ -1694,7 +1625,6 @@ $large-mobile: 600px;
     max-width: 100%;
   }
 
-  // Ajuste final para os cards flutuantes em telas muito pequenas
   .floating-card {
     max-width: 140px;
 
