@@ -1040,7 +1040,7 @@ $large-mobile: 600px;
 }
 
 // Cards flutuantes - AGORA CENTRALIZADOS
-// Cards flutuantes ajustados
+
 .floating-card {
   position: absolute;
   background: rgba(255, 255, 255, 0.95);
@@ -1070,7 +1070,7 @@ $large-mobile: 600px;
   // Card 1 - Topo esquerdo (dentro do container)
   &.card-1 {
     top: 20%;
-    left: 20%;
+    left:50%;
     animation-delay: 0s;
 
     @include mobile {
@@ -1082,7 +1082,7 @@ $large-mobile: 600px;
   // Card 2 - Centro
   &.card-2 {
     top: 50%;
-    left: 50%;
+    left: 55%;
     transform: translate(-50%, -50%);
     animation-delay: 2s;
 
