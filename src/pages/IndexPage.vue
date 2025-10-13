@@ -22,7 +22,7 @@
       </div>
 
       <div class="hero-content container">
-        <div class="row items-center justify-end">
+        <div class="row items-center">
           <!-- Conteúdo principal à direita -->
           <div class="col-12 col-md-8 col-lg-6 content-right">
             <!-- Badge animado -->
@@ -80,7 +80,7 @@
           <div class="col-12 col-md-4 col-lg-6 hero-visual">
             <div class="visual-container">
               <div class="floating-image">
-                <!-- Cards flutuantes centralizados horizontalmente -->
+                <!-- Cards flutuantes -->
                 <div class="floating-card card-1">
                   <q-icon name="verified" color="positive" size="16px" class="q-mr-xs" />
                   <span class="card-text">Profissionais Verificados</span>
@@ -89,7 +89,7 @@
                   <q-icon name="star" color="amber" size="16px" class="q-mr-xs" />
                   <span class="card-text">Avaliação 5★</span>
                 </div>
-                <div class="floating-card card-3 mobile-only">
+                <div class="floating-card card-3">
                   <q-icon name="schedule" color="primary" size="16px" class="q-mr-xs" />
                   <span class="card-text">Agendamento Rápido</span>
                 </div>
@@ -205,7 +205,6 @@
     </section>
 
     <!-- Serviços Populares -->
-    <!-- Na seção de Serviços Populares -->
     <section class="section services-section bg-grey-2">
       <div class="container">
         <div class="text-center section-header animated-fade-in">
@@ -249,6 +248,7 @@
         </div>
       </div>
     </section>
+
     <!-- FAQ Section -->
     <section class="section faq-section bg-white">
       <div class="container">
@@ -307,11 +307,11 @@
     </section>
   </q-page>
 </template>
+
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
-// ✅ Definir interface para o serviço
 interface Service {
   name: string;
   description: string;
@@ -326,10 +326,8 @@ export default defineComponent({
     const router = useRouter();
     const isMobile = ref(false);
 
-    // Computed para número de partículas baseado no dispositivo
     const mobileParticles = computed(() => (isMobile.value ? 6 : 12));
 
-    // Função para estilos das partículas
     const particleStyle = () => {
       const size = isMobile.value ? Math.random() * 3 + 1 : Math.random() * 4 + 2;
       const duration = Math.random() * 15 + 10;
@@ -344,14 +342,10 @@ export default defineComponent({
       };
     };
 
-    // ✅ CORREÇÃO: Função com tipo específico e tratamento de promise
     const redirectToAuth = (service?: Service): void => {
-      // Se um serviço foi passado, salvar no localStorage para usar depois do login
       if (service) {
         localStorage.setItem('selectedService', JSON.stringify(service));
       }
-
-      // ✅ CORREÇÃO: Promise tratada com void
       void router.push('/auth');
     };
 
@@ -362,17 +356,14 @@ export default defineComponent({
       }
     };
 
-    // Verificar tamanho da tela
     const checkScreenSize = () => {
       isMobile.value = window.innerWidth < 768;
     };
 
-    // Inicializar animações quando o componente montar
     onMounted(() => {
       checkScreenSize();
       window.addEventListener('resize', checkScreenSize);
 
-      // Adicionar observador de interseção para animações on scroll
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -384,7 +375,6 @@ export default defineComponent({
         { threshold: 0.1 },
       );
 
-      // Observar todos os elementos com classes de animação
       document
         .querySelectorAll(
           '.animated-fade-in, .animated-slide-up, .animated-slide-right, .animated-card',
@@ -392,13 +382,6 @@ export default defineComponent({
         .forEach((el) => {
           observer.observe(el);
         });
-    });
-
-    // Cleanup
-    onMounted(() => {
-      return () => {
-        window.removeEventListener('resize', checkScreenSize);
-      };
     });
 
     const benefits = ref([
@@ -480,28 +463,28 @@ export default defineComponent({
         description: 'Cuidados completos para suas mãos e pés',
         price: '200 MZN',
         icon: 'spa',
-        image: 'https://th.bing.com/th/id/OIP.mM0i8NLynzhcOj82HtWAYAHaE8?w=259&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3',
+        image: 'https://images.unsplash.com/photo-1607778833979-9732446c1d31',
       },
       {
         name: 'Maquiagem Profissional',
         description: 'Maquiagem para ocasiões especiais e dia a dia',
         price: '500 MZN',
         icon: 'brush',
-        image: 'https://img77.uenicdn.com/image/upload/v1520616808/service_images/shutterstock_517637128.jpg',
+        image: 'https://images.unsplash.com/photo-1512496015859-ea53a8c17bb3',
       },
       {
         name: 'Tratamento Facial',
         description: 'Limpeza de pele e tratamentos revitalizantes',
         price: '800 MZN',
         icon: 'face',
-        image: 'data:image/webp;base64,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',
+        image: 'https://images.unsplash.com/photo-1540555700478-4be2890c43a0',
       },
       {
         name: 'Depilação',
         description: 'Técnicas modernas para uma pele suave',
         price: '300 MZN',
         icon: 'flash_on',
-        image: 'https://th.bing.com/th/id/OIP.JGB8q5lW4EHHQyAEV5e16wHaE8?w=251&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3',
+        image: 'https://images.unsplash.com/photo-1596704013708-f8db3c132d08',
       },
       {
         name: 'Massagem Relaxante',
@@ -583,12 +566,6 @@ $large-mobile: 600px;
 
 @mixin large-mobile {
   @media (max-width: #{$large-mobile}) {
-    @content;
-  }
-}
-
-@mixin desktop {
-  @media (min-width: #{$tablet}) {
     @content;
   }
 }
@@ -833,7 +810,7 @@ $large-mobile: 600px;
     width: 100%;
     height: 100%;
     background: linear-gradient(
-      to left,
+      to right,
       rgba(0, 0, 0, 0.8) 0%,
       rgba(0, 0, 0, 0.4) 50%,
       rgba(0, 0, 0, 0.2) 100%
@@ -915,6 +892,7 @@ $large-mobile: 600px;
   font-size: 3.5rem;
   margin-bottom: 24px;
   line-height: 1.1;
+
   @include tablet {
     font-size: 3rem;
   }
@@ -1071,7 +1049,7 @@ $large-mobile: 600px;
   animation: float 6s ease-in-out infinite;
 }
 
-// Cards flutuantes centralizados horizontalmente
+// Cards flutuantes
 .floating-card {
   position: absolute;
   background: rgba(255, 255, 255, 0.95);
@@ -1112,68 +1090,77 @@ $large-mobile: 600px;
     }
   }
 
-  // Card 1 - Topo centralizado horizontalmente
+  // Card 1 - Topo direito
   &.card-1 {
     top: 20%;
-    left: 90%;
+    left: 80%;
     transform: translateX(-50%);
     animation-delay: 0s;
 
     @include tablet {
-      top: 18%;
+      top: 25%;
+      left: 75%;
     }
 
     @include mobile {
-      top: 15%;
+      top: 20%;
+      left: 70%;
       transform: translateX(-50%) scale(0.9);
     }
 
     @include small-mobile {
-      top: 12%;
+      top: 15%;
+      left: 65%;
       transform: translateX(-50%) scale(0.8);
     }
   }
 
-  // Card 2 - Meio centralizado horizontalmente
+  // Card 2 - Centro direito
   &.card-2 {
-    top: 10%;
-    left: 60%;
+    top: 50%;
+    left: 70%;
     transform: translateX(-50%);
     animation-delay: 2s;
 
     @include tablet {
-      top: 48%;
+      top: 55%;
+      left: 65%;
     }
 
     @include mobile {
-      top: 45%;
+      top: 50%;
+      left: 60%;
       transform: translateX(-50%) scale(0.9);
     }
 
     @include small-mobile {
-      top: 42%;
+      top: 45%;
+      left: 55%;
       transform: translateX(-50%) scale(0.8);
     }
   }
 
-  // Card 3 - Base centralizada horizontalmente
+  // Card 3 - Base direita
   &.card-3 {
     top: 80%;
-    left: 50%;
+    left: 60%;
     transform: translateX(-50%);
     animation-delay: 1s;
 
     @include tablet {
-      top: 78%;
+      top: 85%;
+      left: 55%;
     }
 
     @include mobile {
-      top: 75%;
+      top: 80%;
+      left: 50%;
       transform: translateX(-50%) scale(0.9);
     }
 
     @include small-mobile {
-      top: 72%;
+      top: 75%;
+      left: 45%;
       transform: translateX(-50%) scale(0.8);
     }
   }
@@ -1666,21 +1653,6 @@ $large-mobile: 600px;
   }
 }
 
-// Utility Classes
-.mobile-only {
-  display: none !important;
-
-  @include mobile {
-    display: flex !important;
-  }
-}
-
-.desktop-only {
-  @include mobile {
-    display: none !important;
-  }
-}
-
 // Ajustes de performance para mobile
 @include mobile {
   .floating-particles .particle {
@@ -1730,14 +1702,6 @@ $large-mobile: 600px;
       white-space: normal;
       line-height: 1.2;
     }
-  }
-}
-
-// Ajustes para tablets em modo paisagem
-@media (max-height: 600px) and (min-width: #{$mobile}) {
-  .floating-card {
-    padding: 8px 12px;
-    font-size: 0.8rem;
   }
 }
 </style>
