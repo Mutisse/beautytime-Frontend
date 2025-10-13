@@ -77,7 +77,7 @@
           </div>
         </div>
 
-        <!-- Cards CENTRALIZADOS -->
+        <!-- Cards CENTRALIZADOS - OCULTOS NO MOBILE -->
         <div class="floating-cards-container">
           <div class="floating-card card-1">
             <q-icon name="verified" color="positive" size="16px" class="q-mr-xs" />
@@ -1034,13 +1034,17 @@ $large-mobile: 600px;
   height: 200px;
   pointer-events: none;
 
+  // OCULTAR NO MOBILE
   @include mobile {
+    display: none;
+  }
+
+  @include tablet {
     height: 150px;
   }
 }
 
 // Cards flutuantes - AGORA CENTRALIZADOS
-
 .floating-card {
   position: absolute;
   background: rgba(255, 255, 255, 0.95);
@@ -1055,40 +1059,45 @@ $large-mobile: 600px;
   animation: float 4s ease-in-out infinite;
   font-weight: 600;
   z-index: 10;
+  pointer-events: auto;
 
   @include tablet {
     padding: 10px 14px;
     font-size: 0.85rem;
   }
 
-  @include mobile {
-    padding: 8px 12px;
-    font-size: 0.75rem;
-    backdrop-filter: blur(5px);
-  }
-
-  // Card 1 - Topo esquerdo (dentro do container)
+  // Cards CENTRALIZADOS na tela
   &.card-1 {
     top: 20%;
-    left:50%;
+    left: 20%;
     animation-delay: 0s;
 
-    @include mobile {
+    @include tablet {
       top: 15%;
       left: 10%;
     }
   }
 
-  // Card 2 - Centro
   &.card-2 {
     top: 50%;
-    left: 55%;
+    left: 50%;
     transform: translate(-50%, -50%);
     animation-delay: 2s;
 
-    @include mobile {
+    @include tablet {
       top: 45%;
       left: 45%;
+    }
+  }
+
+  &.card-3 {
+    top: 80%;
+    left: 80%;
+    animation-delay: 1s;
+
+    @include tablet {
+      top: 75%;
+      left: 70%;
     }
   }
 }
@@ -1593,10 +1602,6 @@ $large-mobile: 600px;
   .floating-image {
     animation-duration: 8s;
   }
-
-  .floating-card {
-    animation-duration: 6s;
-  }
 }
 
 // Ajustes específicos para mobile muito pequeno
@@ -1623,15 +1628,6 @@ $large-mobile: 600px;
   .service-card {
     margin: 0 auto;
     max-width: 100%;
-  }
-
-  .floating-card {
-    max-width: 140px;
-
-    .card-text {
-      white-space: normal;
-      line-height: 1.2;
-    }
   }
 }
 </style>
