@@ -130,8 +130,6 @@ export const useAuthStore = defineStore('auth', {
         const endpoint = ApiServiceMapper.getCheckEmailEndpoint();
         const response = await api.post<ApiResponse<{ exists: boolean }>>(endpoint, { email });
 
-        console.log('📧 Resposta verificação email:', response.data);
-
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao verificar email');
         }
@@ -161,7 +159,6 @@ export const useAuthStore = defineStore('auth', {
     async startRegistration(payload: RegisterPayload): Promise<StartRegistrationResponse> {
       try {
         this.isLoading = true;
-        console.log('🚀 Iniciando registro com validação...');
 
         // ✅ 1. VALIDAR DADOS LOCALMENTE
         this.validateRegistrationData(payload);
@@ -177,19 +174,19 @@ export const useAuthStore = defineStore('auth', {
         this.otp.email = payload.email;
 
         // ✅ 4. ENVIAR OTP PARA VERIFICAÇÃO
-        console.log('📤 Enviando OTP para verificação...');
+        /*console.log('📤 Enviando OTP para verificação...');
         await this.requestOtp({
           email: payload.email,
           purpose: 'registration',
           name: `${payload.firstName} ${payload.lastName}`,
         });
+        */
 
         // ✅ 5. ATUALIZAR ESTADO
         this.otp.isSent = true;
         this.otp.isVerified = false;
         this.otp.attempts = 0;
 
-        console.log('✅ OTP enviado com sucesso - aguardando verificação');
         return {
           requiresOtp: true,
           otpSent: true,
@@ -208,14 +205,12 @@ export const useAuthStore = defineStore('auth', {
     async verifyOtpAndCompleteRegistration(otpCode: string): Promise<AuthResponseData> {
       try {
         this.isLoading = true;
-        console.log('🔐 Verificando OTP e completando registro...');
 
         if (!this.pendingRegistration) {
           throw new Error('Nenhum registro pendente encontrado');
         }
 
         // ✅ 1. VERIFICAR OTP
-        console.log('✅ Verificando código OTP...');
         const otpResult = await this.verifyOtp({
           email: this.pendingRegistration.email,
           code: otpCode,
@@ -224,8 +219,6 @@ export const useAuthStore = defineStore('auth', {
         if (!otpResult.verified) {
           throw new Error(otpResult.message);
         }
-
-        console.log('✅ OTP verificado com sucesso!');
 
         // ✅ 2. COMPLETAR REGISTRO NA BASE DE DADOS
         console.log('💾 Registrando usuário na base de dados...');
@@ -282,17 +275,23 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // ✅ MÉTODO ORIGINAL DE VERIFICAÇÃO OTP
+    // ✅ CORREÇÃO NO auth-store.ts - verifyOtp method
     async verifyOtp(payload: { email: string; code: string }): Promise<OtpVerificationResponse> {
       try {
         console.log('✅ Verificando OTP para:', payload.email);
 
         const endpoint = ApiServiceMapper.getOtpEndpoint('verify');
 
-        const response = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, {
+        // ✅ CORREÇÃO: Enviar dados no formato correto
+        const requestData = {
           email: payload.email,
-          otpCode: payload.code,
-          purpose: 'registration',
-        });
+          otpCode: payload.code, // ✅ usar "otpCode" em vez de "code"
+          purpose: 'registration', // ✅ adicionar purpose
+        };
+
+        console.log('📤 Enviando verificação OTP:', requestData);
+
+        const response = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, requestData);
 
         if (!response.data.success) {
           this.otp.attempts += 1;
@@ -310,8 +309,18 @@ export const useAuthStore = defineStore('auth', {
       } catch (error: unknown) {
         console.error('❌ OTP verification error:', error);
 
-        const errorMessage =
-          error instanceof Error ? error.message : 'Erro na verificação do código';
+        // ✅ MELHOR TRATAMENTO DE ERRO
+        let errorMessage = 'Erro na verificação do código';
+
+        if (error instanceof Error) {
+          if (error.message.includes('400')) {
+            errorMessage = 'Código OTP inválido ou expirado';
+          } else if (error.message.includes('404')) {
+            errorMessage = 'Serviço de verificação indisponível';
+          } else {
+            errorMessage = error.message;
+          }
+        }
 
         return {
           verified: false,

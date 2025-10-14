@@ -670,33 +670,75 @@ const nextStep = () => currentStep.value < 4 && currentStep.value++;
 const prevStep = () => currentStep.value > 1 && currentStep.value--;
 
 // Handlers OTP
+// ✅ CORREÇÃO COMPLETA - handleOtpVerify REAL
+// ✅ MANTENHA APENAS ESTES MÉTODOS:
+
 const handleOtpVerify = async (payload: { email: string; code: string }) => {
   try {
-    console.log('Verificando OTP:', payload);
+    console.log('🔐 Verificando OTP:', payload);
 
-    // Simulação de verificação
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // 1. Verificação REAL do OTP
+    const otpResult = await authStore.verifyOtp({
+      email: payload.email,
+      code: payload.code,
+    });
+
+    if (!otpResult.verified) {
+      throw new Error(otpResult.message || 'Código de verificação inválido');
+    }
+
+    console.log('✅ OTP verificado com sucesso!');
+
+    // 2. Preparar dados do registro
+    const role =
+      registerForm.value.userType === 'client' ? UserMainRole.CLIENT : UserMainRole.EMPLOYEE;
+
+    const registrationPayload = {
+      firstName: registerForm.value.firstName,
+      lastName: registerForm.value.lastName,
+      email: registerForm.value.email,
+      password: registerForm.value.password,
+      phone: registerForm.value.phone,
+      role: role,
+      subRole: registerForm.value.userType === 'owner' ? EmployeeSubRole.SALON_OWNER : undefined,
+      acceptTerms: registerForm.value.acceptedTerms,
+    } as RegisterPayload;
+
+    console.log('🚀 Completando registro...', registrationPayload);
+
+    // 3. Usar método CORRETO
+    const result = await authStore.verifyOtpAndCompleteRegistration(payload.code);
+
+    console.log('🎉 Registro completado com sucesso!', result);
+
+    // 4. Fechar popup e redirecionar
+    showOtpPopup.value = false;
 
     $q.notify({
       type: 'positive',
-      message: 'Email verificado com sucesso!',
+      message: 'Conta criada com sucesso! Bem-vindo ao BeautyTime!',
       position: 'top',
+      timeout: 3000,
     });
 
-    showOtpPopup.value = false;
+    // 5. Redirecionar para dashboard
+    await router.push('/dashboard');
+  } catch (error: unknown) {
+    console.error('❌ Erro na verificação OTP:', error);
 
-    // Continuar com o registro após verificação
-    await completeRegistration();
-  } catch (error) {
+    const errorMessage = getErrorMessage(error);
     $q.notify({
       type: 'negative',
-      message: 'Código de verificação inválido',
+      message: errorMessage || 'Erro ao verificar código',
       position: 'top',
+      timeout: 5000,
     });
+
     throw error;
   }
 };
 
+// ✅ Mantenha os outros métodos (handleOtpResend, handleOtpClose, etc.)
 const handleOtpResend = async (payload: { email: string }) => {
   try {
     console.log('Reenviando OTP para:', payload.email);
@@ -726,45 +768,6 @@ const handleOtpClose = () => {
     message: 'Verificação de email cancelada',
     position: 'top',
   });
-};
-
-const completeRegistration = async () => {
-  try {
-    loading.value = true;
-
-    const role =
-      registerForm.value.userType === 'client' ? UserMainRole.CLIENT : UserMainRole.EMPLOYEE;
-
-    const payload = {
-      firstName: registerForm.value.firstName,
-      lastName: registerForm.value.lastName,
-      email: registerForm.value.email,
-      password: registerForm.value.password,
-      phone: registerForm.value.phone,
-      role: role,
-      subRole: registerForm.value.userType === 'owner' ? EmployeeSubRole.SALON_OWNER : undefined,
-      acceptTerms: registerForm.value.acceptedTerms,
-    } as RegisterPayload;
-
-    await authStore.register(payload);
-
-    // Redirecionar para a página de verificação de email
-    await router.push('/verify-email');
-  } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error);
-
-    if ($q && typeof $q.notify === 'function') {
-      $q.notify({
-        message: errorMessage,
-        color: 'negative',
-        position: 'top',
-      });
-    } else {
-      console.error('Erro no registro:', errorMessage);
-    }
-  } finally {
-    loading.value = false;
-  }
 };
 
 // ✅ CORRIGIDO: Fluxo correto do registro
