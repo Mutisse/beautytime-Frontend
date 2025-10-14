@@ -767,9 +767,60 @@ const completeRegistration = async () => {
   }
 };
 
-const handleRegister = () => {
-  // Primeiro mostrar popup de OTP
-  showOtpPopup.value = true;
+// ✅ CORRIGIDO: Fluxo correto do registro
+const handleRegister = async () => {
+  try {
+    loading.value = true;
+    console.log('🚀 Iniciando processo de registro...');
+
+    // ✅ 1. VERIFICAR SE EMAIL JÁ EXISTE PRIMEIRO
+    console.log('🔍 Verificando disponibilidade do email...');
+    const emailExists = await authStore.checkEmailExists(registerForm.value.email);
+
+    if (emailExists) {
+      // ❌ SE EMAIL JÁ EXISTE - MOSTRAR ERRO E PARAR
+      console.log('❌ Email já registrado, abortando registro');
+      $q.notify({
+        type: 'negative',
+        message: 'Este email já está registrado. Por favor, use outro email.',
+        position: 'top',
+        timeout: 5000,
+      });
+      return;
+    }
+
+    console.log('✅ Email disponível, enviando OTP...');
+
+    // ✅ 2. SE EMAIL DISPONÍVEL - ENVIAR OTP
+    await authStore.requestOtp({
+      email: registerForm.value.email,
+      purpose: 'registration',
+      name: `${registerForm.value.firstName} ${registerForm.value.lastName}`,
+    });
+
+    console.log('✅ OTP enviado com sucesso, abrindo popup...');
+
+    // ✅ 3. SÓ DEPOIS ABRIR POPUP OTP
+    showOtpPopup.value = true;
+
+    $q.notify({
+      type: 'positive',
+      message: 'Código de verificação enviado para seu email!',
+      position: 'top',
+    });
+  } catch (error: unknown) {
+    console.error('❌ Erro no processo de registro:', error);
+
+    const errorMessage = getErrorMessage(error);
+    $q.notify({
+      type: 'negative',
+      message: errorMessage || 'Erro ao iniciar registro. Tente novamente.',
+      position: 'top',
+      timeout: 5000,
+    });
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 

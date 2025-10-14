@@ -70,7 +70,7 @@ class ApiServiceMapper {
 
   // ✅ NOVO: Endpoint para verificar se email existe
   static getCheckEmailEndpoint(): string {
-    return '/api/Users/check-email';
+    return '/api/Auth/check-email'; // ✅ CORRETO
   }
 }
 
@@ -122,7 +122,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // ✅ VERIFICAR SE EMAIL JÁ EXISTE
-   
+
     async checkEmailExists(email: string): Promise<boolean> {
       try {
         console.log('🔍 Verificando se email existe:', email);

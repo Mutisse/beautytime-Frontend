@@ -41,14 +41,14 @@ const routes: RouteRecordRaw[] = [
   },
 
   // Rotas de redefinição de senha
-  /*{
+  {
     path: '/password-reset',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
       {
         path: '',
         name: 'password-reset-request',
-        component: () => import('pages/auth/PasswordResetPage.vue'),
+        component: () => import('components/Popup/RecoveryRequestPopup.vue'),
         meta: {
           requiresGuest: true,
           title: 'Redefinir Senha',
@@ -56,22 +56,7 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-  {
-    path: '/password-reset-confirm/:token',
-    component: () => import('layouts/AuthLayout.vue'),
-    children: [
-      {
-        path: '',
-        name: 'password-reset-confirm',
-        component: () => import('pages/auth/PasswordResetConfirm.vue'),
-        meta: {
-          requiresGuest: true,
-          title: 'Confirmar Nova Senha',
-        },
-        props: true,
-      },
-    ],
-  },*/
+ 
 
   // Rotas públicas
   {
