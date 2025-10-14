@@ -41,7 +41,7 @@ const routes: RouteRecordRaw[] = [
   },
 
   // Rotas de redefinição de senha
-  {
+  /*{
     path: '/password-reset',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
@@ -55,7 +55,7 @@ const routes: RouteRecordRaw[] = [
         },
       },
     ],
-  },
+  },*/
  
 
   // Rotas públicas
