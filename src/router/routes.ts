@@ -41,7 +41,7 @@ const routes: RouteRecordRaw[] = [
   },
 
   // Rotas de redefinição de senha
-  {
+  /*{
     path: '/password-reset',
     component: () => import('layouts/AuthLayout.vue'),
     children: [
@@ -71,7 +71,7 @@ const routes: RouteRecordRaw[] = [
         props: true,
       },
     ],
-  },
+  },*/
 
   // Rotas públicas
   {
@@ -103,22 +103,6 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   // router/index.ts
-  {
-    path: '/verify-email',
-    component: () => import('layouts/AuthLayout.vue'),
-    children: [
-      {
-        path: '',
-        name: 'verify-email',
-        component: () => import('pages/auth/VerifyEmailPage.vue'),
-        meta: {
-          title: 'Verificar Email',
-          requiresAuth: false,
-        },
-      },
-    ],
-  },
-  
 
   // 🔐 ROTAS PROTEGIDAS - Adicionadas DEPOIS das públicas
   ...clientRoutes,

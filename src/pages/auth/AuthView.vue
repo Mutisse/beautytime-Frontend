@@ -16,18 +16,24 @@
     <div class="row justify-center full-width q-px-xs q-px-sm-none" style="max-width: 1200px">
       <q-card class="row col-12 shadow-5 shadow-md-10 mobile-card-height">
         <!-- Painel Lateral (Azul) -->
-        <q-card-section class="col-md-6 col-12 bg-primary text-white q-pa-md q-pa-xl-lg mobile-section-height order-2 order-md-1">
+        <q-card-section
+          class="col-md-6 col-12 bg-primary text-white q-pa-md q-pa-xl-lg mobile-section-height order-2 order-md-1"
+        >
           <div class="column justify-center full-height q-gutter-y-md q-gutter-y-xl-lg">
             <!-- Conteúdo Principal do Painel Azul -->
             <div class="text-center text-md-left">
-              
               <div class="text-h5 text-h4-md text-weight-medium q-mb-md">
-                {{ isLogin ? 'Sua Beleza, Nossa Prioridade!' : 'Transforme Sua Experiência de Beleza!' }}
+                {{
+                  isLogin
+                    ? 'Sua Beleza, Nossa Prioridade!'
+                    : 'Transforme Sua Experiência de Beleza!'
+                }}
               </div>
               <div class="text-subtitle1 text-subtitle2-md">
-                {{ isLogin 
-                  ? 'Descubra um mundo de possibilidades para realçar sua beleza com agendamentos fáceis e serviços exclusivos' 
-                  : 'Junte-se a milhares de clientes satisfeitos e tenha acesso aos melhores profissionais da sua região'
+                {{
+                  isLogin
+                    ? 'Descubra um mundo de possibilidades para realçar sua beleza com agendamentos fáceis e serviços exclusivos'
+                    : 'Junte-se a milhares de clientes satisfeitos e tenha acesso aos melhores profissionais da sua região'
                 }}
               </div>
             </div>
@@ -48,11 +54,14 @@
 
             <!-- Benefícios -->
             <div class="benefits-section q-mt-lg">
-              <div class="text-subtitle2 text-weight-medium q-mb-sm">✨ Por que escolher o BeautyTime?</div>
+              <div class="text-subtitle2 text-weight-medium q-mb-sm">
+                ✨ Por que escolher o BeautyTime?
+              </div>
               <div class="text-caption">
-                {{ isLogin 
-                  ? 'Agendamento 24/7 • Profissionais verificados • Lembretes inteligentes' 
-                  : 'Cadastro gratuito • Agendamento instantâneo • Avaliações reais'
+                {{
+                  isLogin
+                    ? 'Agendamento 24/7 • Profissionais verificados • Lembretes inteligentes'
+                    : 'Cadastro gratuito • Agendamento instantâneo • Avaliações reais'
                 }}
               </div>
             </div>
@@ -60,10 +69,10 @@
         </q-card-section>
 
         <!-- Painel Principal (Formulário) -->
-        <q-card-section class="col-md-6 col-12 q-pa-lg q-pa-xl-xl mobile-section-height order-1 order-md-2">
+        <q-card-section
+          class="col-md-6 col-12 q-pa-lg q-pa-xl-xl mobile-section-height order-1 order-md-2"
+        >
           <div class="column full-height justify-center form-content">
-            
-
             <!-- Área do Formulário -->
             <div class="form-area q-mb-lg">
               <transition name="slide-fade" mode="out-in" appear>
@@ -72,7 +81,7 @@
                     v-if="isLogin"
                     @login="handleLogin"
                     @forgotPassword="handleForgotPassword"
-                    @switchToRegister="isLogin = false"
+                    @createAccount="handleCreateAccount"
                   />
                   <RegisterForm v-else @register="handleRegister" @switchToLogin="isLogin = true" />
                 </div>
@@ -116,10 +125,10 @@
     <!-- Fallback para imagem com erro -->
     <div v-if="imageError" class="image-fallback absolute-full flex flex-center">
       <div class="text-center">
-        <q-icon 
-          :name="'image_not_supported'" 
-          :size="$q.screen.lt.sm ? 'md' : 'xl'" 
-          color="grey-5" 
+        <q-icon
+          :name="'image_not_supported'"
+          :size="$q.screen.lt.sm ? 'md' : 'xl'"
+          color="grey-5"
         />
         <div class="text-caption text-grey-6 q-mt-xs">Ilustração não disponível</div>
       </div>
@@ -154,7 +163,7 @@ const imageError = ref(false);
 
 // CORREÇÃO: Estilo para o loading
 const loadingStyle = computed(() => ({
-  fontSize: $q.screen.lt.sm ? '0.9em' : '1.1em'
+  fontSize: $q.screen.lt.sm ? '0.9em' : '1.1em',
 }));
 
 // Importação correta usando import.meta.url do Vite
@@ -179,15 +188,18 @@ const getDashboardRoute = (
 
   if (role === UserMainRoleValues.EMPLOYEE) {
     const subRoleStr = String(subRole).toLowerCase();
-    
-    if (subRoleStr === EmployeeSubRoleValues.SALON_OWNER.toLowerCase() || subRoleStr === 'salon_owner') {
+
+    if (
+      subRoleStr === EmployeeSubRoleValues.SALON_OWNER.toLowerCase() ||
+      subRoleStr === 'salon_owner'
+    ) {
       return '/ownerManager/dashboard';
     }
-    
+
     if (subRoleStr === EmployeeSubRoleValues.STAFF.toLowerCase() || subRoleStr === 'staff') {
       return '/staffEmployee/dashboard';
     }
-    
+
     return '/404';
   }
 
@@ -439,6 +451,29 @@ const handleRegister = async (userData: RegisterPayload): Promise<void> => {
   }
 };
 
+// NOVO: Handler para criar conta via OTP
+const handleCreateAccount = async (payload: { email: string; verified: boolean }) => {
+  try {
+    showInfo('Redirecionando para página de registro...');
+
+    // Redirecionar para página de registro com email pré-preenchido
+    await router.push({
+      path: '/auth',
+      query: {
+        email: payload.email,
+        verified: payload.verified ? 'true' : 'false',
+        action: 'register',
+      },
+    });
+
+    // Mudar para modo de registro
+    isLogin.value = false;
+  } catch (error) {
+    showError('Erro ao redirecionar para registro');
+    console.error('Erro no create account:', error);
+  }
+};
+
 const handleForgotPassword = (): void => {
   showInfo('Redirecionando para recuperação de senha...');
   void router.push('/password-reset');
@@ -450,6 +485,7 @@ onMounted(() => {
   }, 100);
 });
 </script>
+
 <style lang="scss" scoped>
 .fade-enter-active,
 .fade-leave-active {
@@ -623,7 +659,7 @@ onMounted(() => {
   .benefits-section {
     margin-top: 20px;
   }
-  
+
   /* GARANTIR ESPAÇO EM TABLET */
   :deep(.register-form-container) {
     min-height: 500px;
@@ -650,7 +686,7 @@ onMounted(() => {
   .form-header {
     text-align: center;
     margin-bottom: 20px;
-    
+
     .text-left {
       text-align: center !important;
     }
@@ -670,12 +706,12 @@ onMounted(() => {
     top: 8px;
     left: 8px;
   }
-  
+
   /* AJUSTES ESPECÍFICOS PARA MOBILE */
   .form-area {
     margin-bottom: 10px;
   }
-  
+
   .form-footer {
     margin-top: 10px;
   }
@@ -731,16 +767,16 @@ onMounted(() => {
   .form-header {
     margin-bottom: 15px;
   }
-  
+
   /* COMPACTAR MAIS EM TELAS BAIXAS */
   .form-area {
     margin-bottom: 8px;
   }
-  
+
   .form-footer {
     margin-top: 8px;
   }
-  
+
   :deep(.register-form-container) {
     min-height: 400px;
   }
@@ -781,7 +817,8 @@ onMounted(() => {
 
 /* REMOVER PADDINGS DESNECESSÁRIOS QUE ROUBAM ESPAÇO */
 :deep(.q-card__section) {
-  &.q-pa-lg, &.q-pa-xl-xl {
+  &.q-pa-lg,
+  &.q-pa-xl-xl {
     padding: 20px;
   }
 }

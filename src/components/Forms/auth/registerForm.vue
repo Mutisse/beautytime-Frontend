@@ -440,6 +440,15 @@
         </transition>
       </q-form>
     </div>
+
+    <!-- OTP Verification Popup -->
+    <OTPVerificationPopup
+      v-if="showOtpPopup"
+      :email="registerForm.email"
+      @verify="handleOtpVerify"
+      @resend="handleOtpResend"
+      @close="handleOtpClose"
+    />
   </div>
 </template>
 
@@ -448,6 +457,7 @@ import { ref, computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from '../../../stores/auth-store';
+import OTPVerificationPopup from '../../Popup/OTPVerificationPopup.vue';
 import type { RegisterPayload } from '../../../types/auth-Types';
 import { UserMainRole, EmployeeSubRole } from '../../../types/auth-Types';
 
@@ -481,13 +491,14 @@ interface PasswordRequirements {
 }
 
 const router = useRouter();
-const $q = useQuasar(); // ✅ Agora está correto
+const $q = useQuasar();
 const authStore = useAuthStore();
 
 const loading = ref(false);
 const currentStep = ref(1);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+const showOtpPopup = ref(false);
 
 const registerForm = ref<RegisterFormData>({
   firstName: '',
@@ -658,14 +669,72 @@ function getErrorMessage(error: unknown): string {
 const nextStep = () => currentStep.value < 4 && currentStep.value++;
 const prevStep = () => currentStep.value > 1 && currentStep.value--;
 
-const handleRegister = async () => {
+// Handlers OTP
+const handleOtpVerify = async (payload: { email: string; code: string }) => {
+  try {
+    console.log('Verificando OTP:', payload);
+
+    // Simulação de verificação
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    $q.notify({
+      type: 'positive',
+      message: 'Email verificado com sucesso!',
+      position: 'top',
+    });
+
+    showOtpPopup.value = false;
+
+    // Continuar com o registro após verificação
+    await completeRegistration();
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Código de verificação inválido',
+      position: 'top',
+    });
+    throw error;
+  }
+};
+
+const handleOtpResend = async (payload: { email: string }) => {
+  try {
+    console.log('Reenviando OTP para:', payload.email);
+
+    // Simulação de reenvio
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    $q.notify({
+      type: 'positive',
+      message: 'Código reenviado com sucesso!',
+      position: 'top',
+    });
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: 'Erro ao reenviar código',
+      position: 'top',
+    });
+    throw error;
+  }
+};
+
+const handleOtpClose = () => {
+  showOtpPopup.value = false;
+  $q.notify({
+    type: 'info',
+    message: 'Verificação de email cancelada',
+    position: 'top',
+  });
+};
+
+const completeRegistration = async () => {
   try {
     loading.value = true;
 
     const role =
       registerForm.value.userType === 'client' ? UserMainRole.CLIENT : UserMainRole.EMPLOYEE;
 
-    // ✅ CORREÇÃO: Usando type assertion para resolver o problema de tipagem
     const payload = {
       firstName: registerForm.value.firstName,
       lastName: registerForm.value.lastName,
@@ -675,16 +744,15 @@ const handleRegister = async () => {
       role: role,
       subRole: registerForm.value.userType === 'owner' ? EmployeeSubRole.SALON_OWNER : undefined,
       acceptTerms: registerForm.value.acceptedTerms,
-    } as RegisterPayload; // ✅ Type assertion para evitar conflito com exactOptionalPropertyTypes
+    } as RegisterPayload;
 
     await authStore.register(payload);
 
-    // ✅ Redirecionar para a página de verificação de email
+    // Redirecionar para a página de verificação de email
     await router.push('/verify-email');
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
 
-    // ✅ CORREÇÃO: Verificando se $q.notify está disponível
     if ($q && typeof $q.notify === 'function') {
       $q.notify({
         message: errorMessage,
@@ -692,14 +760,19 @@ const handleRegister = async () => {
         position: 'top',
       });
     } else {
-      // Fallback: console.log se o Quasar não estiver disponível
       console.error('Erro no registro:', errorMessage);
     }
   } finally {
     loading.value = false;
   }
 };
+
+const handleRegister = () => {
+  // Primeiro mostrar popup de OTP
+  showOtpPopup.value = true;
+};
 </script>
+
 <style lang="scss" scoped>
 .register-form-container {
   flex: 1;
