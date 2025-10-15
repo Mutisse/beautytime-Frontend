@@ -64,7 +64,7 @@
               flat
               label="Esqueceu sua senha?"
               color="primary"
-              @click="emit('forgotPassword')"
+              @click="openRecoveryPopup"
               no-caps
               class="forgot-mini"
               size="12px"
@@ -114,15 +114,26 @@
         </div>
       </q-form>
     </div>
+
+    <!-- Popup de Recuperação de Senha -->
+    <RecoveryPasswordPopup
+      ref="recoveryPopupRef"
+      @close="onRecoveryClose"
+      @email-sent="onRecoveryEmailSent"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useQuasar } from 'quasar';
+import RecoveryPasswordPopup from '../../Popup/RecoveryRequestPopup.vue'; // Ajuste o caminho conforme necessário
 
 const $q = useQuasar();
 const emit = defineEmits(['login', 'forgotPassword']);
+
+// Refs
+const recoveryPopupRef = ref<InstanceType<typeof RecoveryPasswordPopup> | null>(null);
 
 // Form data
 const form = ref({
@@ -147,7 +158,28 @@ const passwordRules = [
   (val: string) => val.length >= 6 || 'Mínimo 6 caracteres',
 ];
 
-// Handlers
+// Método para abrir o popup de recuperação
+const openRecoveryPopup = () => {
+  if (recoveryPopupRef.value) {
+    recoveryPopupRef.value.open();
+  }
+};
+
+// Handlers para eventos do popup
+const onRecoveryClose = () => {
+  console.log('Popup de recuperação fechado');
+};
+
+const onRecoveryEmailSent = (email: string) => {
+  console.log('Email de recuperação enviado para:', email);
+  $q.notify({
+    type: 'positive',
+    message: `Código enviado para ${email}`,
+    position: 'top',
+  });
+};
+
+// Handlers existentes
 const handleSubmit = () => {
   loading.value = true;
   try {
@@ -206,6 +238,7 @@ const showError = (message: string) => {
 </script>
 
 <style scoped lang="scss">
+/* Seus estilos existentes permanecem os mesmos */
 .login-form-container {
   flex: 1;
   display: flex;

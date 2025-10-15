@@ -38,7 +38,7 @@ const businessManagerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'create/new-salon',
+        path: 'create-first/new-salon',
         name: 'manager-salon-create',
         component: () => import('pages/manager/SalonCreatePage.vue'),
         meta: {
@@ -48,7 +48,7 @@ const businessManagerRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'add/new-salon',
+        path: 'create/new-salon',
         name: 'manager-salon-add',
         component: () => import('pages/manager/addNewSalonPage.vue'),
         meta: {

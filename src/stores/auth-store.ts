@@ -26,7 +26,6 @@ class ApiServiceMapper {
       [UserMainRole.EMPLOYEE]: '/Users/employees/register',
       [UserMainRole.ADMINSYSTEM]: '/Users/admins/register',
     };
-
     return `/api${registerPaths[role]}`;
   }
 
@@ -68,9 +67,8 @@ class ApiServiceMapper {
     return '/api/Auth/reset-password';
   }
 
-  // ✅ NOVO: Endpoint para verificar se email existe
   static getCheckEmailEndpoint(): string {
-    return '/api/Auth/check-email'; // ✅ CORRETO
+    return '/api/Auth/check-email';
   }
 }
 
@@ -78,6 +76,7 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState & {
     otp: OtpState;
     pendingRegistration: RegisterPayload | null;
+    isVerifyingOtp: boolean;
   } => ({
     user: null,
     tokens: {
@@ -93,40 +92,34 @@ export const useAuthStore = defineStore('auth', {
       attempts: 0,
     },
     pendingRegistration: null,
+    isVerifyingOtp: false,
   }),
 
   actions: {
-    // ✅ VALIDAÇÃO LOCAL DOS DADOS
     validateRegistrationData(payload: RegisterPayload): void {
       if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
         throw new Error('Nome completo é obrigatório');
       }
-
       if (!payload.email?.trim()) {
         throw new Error('Email é obrigatório');
       }
-
-      // Validação básica de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(payload.email)) {
         throw new Error('Email inválido');
       }
-
       if (!payload.password || payload.password.length < 6) {
         throw new Error('Senha deve ter pelo menos 6 caracteres');
       }
-
       if (!payload.phone?.trim()) {
         throw new Error('Telefone é obrigatório');
       }
+      if (!payload.acceptTerms) {
+        throw new Error('É necessário aceitar os termos de uso');
+      }
     },
-
-    // ✅ VERIFICAR SE EMAIL JÁ EXISTE
 
     async checkEmailExists(email: string): Promise<boolean> {
       try {
-        console.log('🔍 Verificando se email existe:', email);
-
         const endpoint = ApiServiceMapper.getCheckEmailEndpoint();
         const response = await api.post<ApiResponse<{ exists: boolean }>>(endpoint, { email });
 
@@ -136,56 +129,32 @@ export const useAuthStore = defineStore('auth', {
 
         return response.data.data?.exists || false;
       } catch (error: unknown) {
-        console.error('❌ Erro ao verificar email:', error);
-
-        // Se o endpoint não existir ainda, assumir que email não existe
         if (error instanceof Error) {
-          // Verificar se é um erro 404 (endpoint não encontrado)
           if (error.message.includes('404') || error.message.includes('Not Found')) {
-            console.warn('⚠️ Endpoint de verificação não encontrado, continuando...');
             return false;
           }
-
-          // Se for outro tipo de erro, lançar exceção
           throw new Error('Erro ao verificar disponibilidade do email: ' + error.message);
         }
-
-        // Se não for uma instância de Error, lançar mensagem genérica
         throw new Error('Erro desconhecido ao verificar disponibilidade do email');
       }
     },
 
-    // ✅ FLUXO CORRETO: INICIAR REGISTRO COM VALIDAÇÃO
     async startRegistration(payload: RegisterPayload): Promise<StartRegistrationResponse> {
       try {
         this.isLoading = true;
-
-        // ✅ 1. VALIDAR DADOS LOCALMENTE
         this.validateRegistrationData(payload);
 
-        // ✅ 2. VERIFICAR SE EMAIL JÁ EXISTE
         const emailExists = await this.checkEmailExists(payload.email);
         if (emailExists) {
           throw new Error('Este email já está registrado. Por favor, use outro email.');
         }
 
-        // ✅ 3. SALVAR DADOS TEMPORARIAMENTE
         this.pendingRegistration = payload;
         this.otp.email = payload.email;
-
-        // ✅ 4. ENVIAR OTP PARA VERIFICAÇÃO
-        /*console.log('📤 Enviando OTP para verificação...');
-        await this.requestOtp({
-          email: payload.email,
-          purpose: 'registration',
-          name: `${payload.firstName} ${payload.lastName}`,
-        });
-        */
-
-        // ✅ 5. ATUALIZAR ESTADO
         this.otp.isSent = true;
         this.otp.isVerified = false;
         this.otp.attempts = 0;
+        this.isVerifyingOtp = false;
 
         return {
           requiresOtp: true,
@@ -193,7 +162,6 @@ export const useAuthStore = defineStore('auth', {
           message: 'Código de verificação enviado para seu email',
         };
       } catch (error: unknown) {
-        console.error('❌ Erro no início do registro:', error);
         const errorMessage = error instanceof Error ? error.message : 'Erro ao iniciar registro';
         throw new Error(errorMessage);
       } finally {
@@ -201,8 +169,13 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ VERIFICAR OTP E COMPLETAR REGISTRO
     async verifyOtpAndCompleteRegistration(otpCode: string): Promise<AuthResponseData> {
+      if (this.isVerifyingOtp) {
+        throw new Error('Verificação de OTP já em andamento. Aguarde...');
+      }
+
+      this.isVerifyingOtp = true;
+
       try {
         this.isLoading = true;
 
@@ -210,39 +183,40 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Nenhum registro pendente encontrado');
         }
 
-        // ✅ 1. VERIFICAR OTP
-        const otpResult = await this.verifyOtp({
-          email: this.pendingRegistration.email,
-          code: otpCode,
-        });
-
-        if (!otpResult.verified) {
-          throw new Error(otpResult.message);
+        if (!this.otp.email) {
+          throw new Error('Email não encontrado para verificação');
         }
 
-        // ✅ 2. COMPLETAR REGISTRO NA BASE DE DADOS
-        console.log('💾 Registrando usuário na base de dados...');
-        const result = await this.completeRegistration(this.pendingRegistration);
+        const endpoint = ApiServiceMapper.getOtpEndpoint('verify');
+        const verifyResponse = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, {
+          email: this.otp.email,
+          otpCode: otpCode,
+          purpose: 'registration',
+        });
 
-        // ✅ 3. LIMPAR ESTADO TEMPORÁRIO
+        if (!verifyResponse.data.success) {
+          this.otp.attempts += 1;
+          throw new Error(verifyResponse.data.error || 'Código de verificação inválido');
+        }
+
+        this.otp.isVerified = true;
+        this.otp.attempts = 0;
+
+        const result = await this.register(this.pendingRegistration);
         this.resetOtpState();
 
-        console.log('🎉 Registro completado com sucesso!');
         return result;
       } catch (error: unknown) {
-        console.error('❌ Erro ao verificar OTP e completar registro:', error);
         const errorMessage = error instanceof Error ? error.message : 'Erro ao completar registro';
         throw new Error(errorMessage);
       } finally {
         this.isLoading = false;
+        this.isVerifyingOtp = false;
       }
     },
 
-    // ✅ MÉTODO ORIGINAL DE REQUEST OTP
     async requestOtp(payload: OtpRequestPayload): Promise<{ sent: boolean }> {
       try {
-        console.log('📤 Enviando OTP para:', payload.email);
-
         const endpoint = ApiServiceMapper.getOtpEndpoint('send');
         const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint, {
           email: payload.email,
@@ -254,42 +228,31 @@ export const useAuthStore = defineStore('auth', {
           throw new Error(response.data.error || 'Erro ao enviar OTP');
         }
 
-        console.log('✅ OTP enviado com sucesso');
         return response.data.data || { sent: true };
       } catch (error: unknown) {
-        console.error('❌ OTP request error:', error);
-
-        if (error instanceof Error) {
-          if (error.message.includes('404') || error.message.includes('Not Found')) {
-            throw new Error('Serviço de verificação temporariamente indisponível');
-          }
-          if (error.message.includes('400')) {
-            throw new Error('Email inválido ou já registrado');
-          }
-        }
-
         const errorMessage =
           error instanceof Error ? error.message : 'Erro ao enviar código de verificação';
         throw new Error(errorMessage);
       }
     },
 
-    // ✅ MÉTODO ORIGINAL DE VERIFICAÇÃO OTP
-    // ✅ CORREÇÃO NO auth-store.ts - verifyOtp method
     async verifyOtp(payload: { email: string; code: string }): Promise<OtpVerificationResponse> {
+      if (this.isVerifyingOtp) {
+        return {
+          verified: false,
+          message: 'Verificação de OTP já em andamento',
+        };
+      }
+
+      this.isVerifyingOtp = true;
+
       try {
-        console.log('✅ Verificando OTP para:', payload.email);
-
         const endpoint = ApiServiceMapper.getOtpEndpoint('verify');
-
-        // ✅ CORREÇÃO: Enviar dados no formato correto
         const requestData = {
           email: payload.email,
-          otpCode: payload.code, // ✅ usar "otpCode" em vez de "code"
-          purpose: 'registration', // ✅ adicionar purpose
+          otpCode: payload.code,
+          purpose: 'registration',
         };
-
-        console.log('📤 Enviando verificação OTP:', requestData);
 
         const response = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, requestData);
 
@@ -301,17 +264,12 @@ export const useAuthStore = defineStore('auth', {
         this.otp.isVerified = true;
         this.otp.attempts = 0;
 
-        console.log('✅ OTP verificado com sucesso');
         return {
           verified: true,
           message: 'Código verificado com sucesso',
         };
       } catch (error: unknown) {
-        console.error('❌ OTP verification error:', error);
-
-        // ✅ MELHOR TRATAMENTO DE ERRO
         let errorMessage = 'Erro na verificação do código';
-
         if (error instanceof Error) {
           if (error.message.includes('400')) {
             errorMessage = 'Código OTP inválido ou expirado';
@@ -326,77 +284,85 @@ export const useAuthStore = defineStore('auth', {
           verified: false,
           message: errorMessage,
         };
+      } finally {
+        this.isVerifyingOtp = false;
       }
     },
 
-    // ✅ MÉTODO ORIGINAL DE REGISTRO
-    async completeRegistration(payload: RegisterPayload): Promise<AuthResponseData> {
-      if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
-        throw new Error('Nome completo é obrigatório');
+    async register(payload: RegisterPayload): Promise<AuthResponseData> {
+      try {
+        this.isLoading = true;
+
+        if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
+          throw new Error('Nome completo é obrigatório');
+        }
+        if (!payload.email?.trim()) {
+          throw new Error('Email é obrigatório');
+        }
+        if (!payload.password) {
+          throw new Error('Senha é obrigatória');
+        }
+        if (!payload.phone?.trim()) {
+          throw new Error('Telefone é obrigatório');
+        }
+        if (!payload.acceptTerms) {
+          throw new Error('É necessário aceitar os termos de uso');
+        }
+
+        const registerData = {
+          fullName: {
+            firstName: payload.firstName.trim(),
+            lastName: payload.lastName.trim(),
+          },
+          email: payload.email.trim(),
+          password: payload.password,
+          phone: payload.phone,
+          acceptTerms: payload.acceptTerms,
+          ...(payload.role === UserMainRole.EMPLOYEE &&
+            payload.subRole && {
+              subRole: payload.subRole,
+            }),
+        };
+
+        const endpoint = ApiServiceMapper.getRegisterEndpoint(payload.role);
+        const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, registerData);
+
+        if (!response.data.success) {
+          throw new Error(response.data.error || 'Erro no registro');
+        }
+
+        const responseData = response.data.data;
+        if (!responseData) {
+          throw new Error('Dados de resposta não encontrados');
+        }
+
+        this.tokens.accessToken = responseData.accessToken;
+        this.tokens.refreshToken = responseData.refreshToken || null;
+        this.user = responseData.user;
+
+        this.saveToStorage();
+
+        if (responseData.accessToken) {
+          api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
+        }
+
+        return responseData;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao realizar registro';
+        throw new Error(errorMessage);
+      } finally {
+        this.isLoading = false;
       }
-
-      if (!payload.email?.trim()) {
-        throw new Error('Email é obrigatório');
-      }
-
-      if (!payload.password) {
-        throw new Error('Senha é obrigatória');
-      }
-
-      if (!payload.phone?.trim()) {
-        throw new Error('Telefone é obrigatório');
-      }
-
-      const registerData = {
-        fullName: {
-          firstName: payload.firstName.trim(),
-          lastName: payload.lastName.trim(),
-        },
-        email: payload.email.trim(),
-        password: payload.password,
-        phone: payload.phone,
-        ...(payload.role === UserMainRole.EMPLOYEE &&
-          payload.subRole && {
-            subRole: payload.subRole,
-          }),
-      };
-
-      const endpoint = ApiServiceMapper.getRegisterEndpoint(payload.role);
-      const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, registerData);
-
-      if (!response.data.success) {
-        throw new Error(response.data.error || 'Erro no registro');
-      }
-
-      const responseData = response.data.data;
-      if (!responseData) {
-        throw new Error('Dados de resposta não encontrados');
-      }
-
-      this.tokens.accessToken = responseData.accessToken;
-      this.tokens.refreshToken = responseData.refreshToken || null;
-      this.user = responseData.user;
-
-      this.saveToStorage();
-
-      if (responseData.accessToken) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
-      }
-
-      return responseData;
     },
 
-    // ✅ MÉTODO PARA CANCELAR REGISTRO
     cancelRegistration(): void {
-      console.log('❌ Registro cancelado pelo usuário');
       this.resetOtpState();
+      this.isVerifyingOtp = false;
     },
 
-    // ✅ REENVIAR OTP
     async resendOtp(payload: { email: string }): Promise<OtpResendResponse> {
       try {
         const endpoint = ApiServiceMapper.getOtpEndpoint('resend');
-
         const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint, {
           email: payload.email,
           purpose: 'registration',
@@ -408,6 +374,7 @@ export const useAuthStore = defineStore('auth', {
 
         this.otp.isSent = true;
         this.otp.attempts = 0;
+        this.isVerifyingOtp = false;
 
         return {
           sent: true,
@@ -419,7 +386,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ RESETAR ESTADO OTP
     resetOtpState(): void {
       this.otp = {
         email: null,
@@ -428,29 +394,12 @@ export const useAuthStore = defineStore('auth', {
         attempts: 0,
       };
       this.pendingRegistration = null;
+      this.isVerifyingOtp = false;
     },
 
-    // ✅ REGISTER (MÉTODO LEGACY - MANTIDO PARA COMPATIBILIDADE)
-    async register(payload: RegisterPayload): Promise<AuthResponseData> {
-      console.warn(
-        '⚠️ Método register() é legado. Use startRegistration() + verifyOtpAndCompleteRegistration()',
-      );
-
-      const result = await this.startRegistration(payload);
-
-      if (result.requiresOtp) {
-        throw new Error('Registro requer verificação OTP. Use o fluxo completo com OTP.');
-      }
-
-      return await this.completeRegistration(payload);
-    },
-
-    // ✅ LOGIN
     async login(credentials: LoginCredentials): Promise<AuthResponseData> {
       try {
         this.isLoading = true;
-        console.log('🔐 Tentando login para:', credentials.email);
-
         const endpoint = ApiServiceMapper.getLoginEndpoint();
 
         const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, {
@@ -477,10 +426,8 @@ export const useAuthStore = defineStore('auth', {
           api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         }
 
-        console.log('✅ Login realizado com sucesso');
         return responseData;
       } catch (error: unknown) {
-        console.error('❌ Login error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido no login';
         throw new Error(errorMessage);
       } finally {
@@ -488,16 +435,13 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ REFRESH TOKEN
     async refreshToken(): Promise<Tokens> {
       try {
         if (!this.tokens.refreshToken) {
           throw new Error('Refresh token não disponível');
         }
 
-        console.log('🔄 Renovando token...');
         const endpoint = ApiServiceMapper.getRefreshTokenEndpoint();
-
         const response = await api.post<ApiResponse<Tokens>>(endpoint, {
           refreshToken: this.tokens.refreshToken,
         });
@@ -517,16 +461,13 @@ export const useAuthStore = defineStore('auth', {
         this.saveToStorage();
         api.defaults.headers.common['Authorization'] = `Bearer ${tokens.accessToken}`;
 
-        console.log('✅ Token renovado com sucesso');
         return tokens;
       } catch (error: unknown) {
-        console.error('❌ Refresh token error:', error);
         await this.logout();
         throw error;
       }
     },
 
-    // ✅ LOGOUT
     async logout(): Promise<void> {
       try {
         if (this.tokens.accessToken) {
@@ -534,7 +475,7 @@ export const useAuthStore = defineStore('auth', {
             const endpoint = ApiServiceMapper.getLogoutEndpoint();
             await api.post(endpoint);
           } catch {
-            console.warn('Logout endpoint not available, continuing with client-side logout');
+            // Continue com logout client-side
           }
         }
 
@@ -542,15 +483,11 @@ export const useAuthStore = defineStore('auth', {
         this.tokens = { accessToken: null, refreshToken: null };
         this.isInitialized = false;
         this.resetOtpState();
-
         this.clearStorage();
 
         const router = useRouter();
         await router.push('/auth/login');
-
-        console.log('✅ Logout realizado com sucesso');
       } catch {
-        console.error('❌ Logout error');
         this.user = null;
         this.tokens = { accessToken: null, refreshToken: null };
         this.resetOtpState();
@@ -558,7 +495,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ MÉTODOS DE PERFIL
     async fetchCurrentUser(): Promise<void> {
       try {
         if (!this.tokens.accessToken) {
@@ -574,8 +510,6 @@ export const useAuthStore = defineStore('auth', {
         }
 
         const endpoint = ApiServiceMapper.getProfileEndpoint(this.user.role);
-
-        console.log('👤 Buscando usuário via:', endpoint);
         const response = await api.get<ApiResponse<UserData>>(endpoint);
 
         if (!response.data.success) {
@@ -589,10 +523,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = response.data.data;
         this.isInitialized = true;
         this.saveToStorage();
-
-        console.log('✅ Usuário carregado com sucesso');
       } catch (error: unknown) {
-        console.error('❌ Failed to fetch current user:', error);
         if (error instanceof Error && error.message.includes('401')) {
           await this.logout();
         }
@@ -600,24 +531,18 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ REQUEST PASSWORD RESET
     async requestPasswordReset(email: string): Promise<PasswordResetResponse> {
       try {
         this.isLoading = true;
-        console.log('📧 Solicitando reset de senha para:', email);
-
         const endpoint = ApiServiceMapper.getForgotPasswordEndpoint();
-
         const response = await api.post<ApiResponse<PasswordResetResponse>>(endpoint, { email });
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao solicitar reset de senha');
         }
 
-        console.log('✅ Solicitação de reset de senha enviada com sucesso');
         return response.data.data || { success: true, message: 'Email enviado com sucesso' };
       } catch (error: unknown) {
-        console.error('❌ Password reset request error:', error);
         const errorMessage =
           error instanceof Error ? error.message : 'Erro ao solicitar reset de senha';
         throw new Error(errorMessage);
@@ -626,27 +551,21 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ CONFIRM PASSWORD RESET
     async confirmPasswordReset(payload: {
       token: string;
       newPassword: string;
     }): Promise<PasswordResetResponse> {
       try {
         this.isLoading = true;
-        console.log('🔑 Confirmando reset de senha');
-
         const endpoint = ApiServiceMapper.getResetPasswordEndpoint();
-
         const response = await api.post<ApiResponse<PasswordResetResponse>>(endpoint, payload);
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao confirmar reset de senha');
         }
 
-        console.log('✅ Reset de senha confirmado com sucesso');
         return response.data.data || { success: true, message: 'Senha alterada com sucesso' };
       } catch (error: unknown) {
-        console.error('❌ Password reset confirmation error:', error);
         const errorMessage =
           error instanceof Error ? error.message : 'Erro ao confirmar reset de senha';
         throw new Error(errorMessage);
@@ -655,7 +574,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    // ✅ MÉTODOS DE STORAGE
     loadFromStorage(): void {
       try {
         const stored = localStorage.getItem('auth-store');
@@ -669,8 +587,7 @@ export const useAuthStore = defineStore('auth', {
             api.defaults.headers.common['Authorization'] = `Bearer ${this.tokens.accessToken}`;
           }
         }
-      } catch (error) {
-        console.error('❌ Error loading from storage:', error);
+      } catch {
         this.clearStorage();
       }
     },
@@ -684,8 +601,8 @@ export const useAuthStore = defineStore('auth', {
           isInitialized: this.isInitialized,
         };
         localStorage.setItem('auth-store', JSON.stringify(storageData));
-      } catch (error) {
-        console.error('❌ Error saving to storage:', error);
+      } catch {
+        // Silenciosamente falha ao salvar
       }
     },
 
@@ -694,12 +611,11 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('auth-store');
         sessionStorage.removeItem('auth-store');
         delete api.defaults.headers.common['Authorization'];
-      } catch (error) {
-        console.error('❌ Error clearing storage:', error);
+      } catch {
+        // Silenciosamente falha ao limpar
       }
     },
 
-    // ✅ INICIALIZAÇÃO
     async initialize(): Promise<void> {
       if (this.isInitialized) {
         return;
@@ -713,8 +629,7 @@ export const useAuthStore = defineStore('auth', {
         }
 
         this.isInitialized = true;
-      } catch (error: unknown) {
-        console.error('❌ Store initialization error:', error);
+      } catch {
         this.clearStorage();
         this.isInitialized = true;
       }
@@ -722,15 +637,14 @@ export const useAuthStore = defineStore('auth', {
   },
 
   getters: {
-    // 🎯 GETTERS PARA OTP
     isOtpRequired: (state): boolean => state.otp.isSent && !state.otp.isVerified,
     isOtpVerified: (state): boolean => state.otp.isVerified,
     isOtpSent: (state): boolean => state.otp.isSent,
     otpEmail: (state): string | null => state.otp.email,
     otpAttempts: (state): number => state.otp.attempts,
     hasPendingRegistration: (state): boolean => !!state.pendingRegistration,
+    isVerifyingOtpState: (state): boolean => state.isVerifyingOtp,
 
-    // 🎯 GETTERS EXISTENTES
     isAuthenticated: (state): boolean => !!state.tokens.accessToken && !!state.user,
     currentUser: (state): UserData | null => state.user,
     userRole: (state): UserMainRole | undefined => state.user?.role,

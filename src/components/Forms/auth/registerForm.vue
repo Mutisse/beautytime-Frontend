@@ -461,7 +461,6 @@ import OTPVerificationPopup from '../../Popup/OTPVerificationPopup.vue';
 import type { RegisterPayload } from '../../../types/auth-Types';
 import { UserMainRole, EmployeeSubRole } from '../../../types/auth-Types';
 
-// Interface local apenas para o formulário
 interface RegisterFormData {
   firstName: string;
   lastName: string;
@@ -511,7 +510,6 @@ const registerForm = ref<RegisterFormData>({
   acceptedTerms: false,
 });
 
-// Políticas de senha reativas
 const passwordRequirements = reactive<PasswordRequirements>({
   length: { valid: false, message: 'Mínimo 8 caracteres' },
   uppercase: { valid: false, message: 'Pelo menos 1 letra maiúscula' },
@@ -521,16 +519,17 @@ const passwordRequirements = reactive<PasswordRequirements>({
   noSpaces: { valid: false, message: 'Não pode conter espaços' },
 });
 
-// Computed
 const fullName = computed(() =>
   `${registerForm.value.firstName} ${registerForm.value.lastName}`.trim(),
 );
+
 const formattedPhone = computed(() => {
   const phone = registerForm.value.phone.replace(/\D/g, '');
   return phone
     ? `+258 ${phone.slice(0, 3)} ${phone.slice(3, 5)} ${phone.slice(5, 7)} ${phone.slice(7, 9)}`
     : '';
 });
+
 const userTypeLabel = computed(() =>
   registerForm.value.userType === 'client' ? 'Cliente' : 'Proprietário',
 );
@@ -561,7 +560,6 @@ const isStep3Valid = computed(() => {
   );
 });
 
-// Regras de validação da senha
 const passwordRules = [
   (val: string) => !!val || 'Senha é obrigatória',
   (val: string) => val.length >= 8 || 'Mínimo 8 caracteres',
@@ -577,10 +575,8 @@ const confirmPasswordRules = [
   (val: string) => val === registerForm.value.password || 'Senhas não coincidem',
 ];
 
-// Validação em tempo real da senha
 const validatePassword = () => {
   const password = registerForm.value.password;
-
   passwordRequirements.length.valid = password.length >= 8;
   passwordRequirements.uppercase.valid = /[A-Z]/.test(password);
   passwordRequirements.lowercase.valid = /[a-z]/.test(password);
@@ -589,7 +585,6 @@ const validatePassword = () => {
   passwordRequirements.noSpaces.valid = !/\s/.test(password);
 };
 
-// Força da senha avançada
 const passwordStrength = computed((): PasswordStrength => {
   const password = registerForm.value.password;
   if (!password)
@@ -604,7 +599,6 @@ const passwordStrength = computed((): PasswordStrength => {
   let score = 0;
   const tips: string[] = [];
 
-  // Critérios de pontuação
   if (password.length >= 8) score += 1;
   if (password.length >= 12) score += 1;
   if (/[A-Z]/.test(password)) score += 1;
@@ -613,7 +607,6 @@ const passwordStrength = computed((): PasswordStrength => {
   if (/[@$!%*?&]/.test(password)) score += 1;
   if (password.length > 14) score += 1;
 
-  // Dicas personalizadas
   if (password.length < 8) tips.push('Tente uma senha com pelo menos 8 caracteres');
   if (!/[A-Z]/.test(password)) tips.push('Adicione uma letra maiúscula');
   if (!/[a-z]/.test(password)) tips.push('Adicione uma letra minúscula');
@@ -648,16 +641,13 @@ const passwordStrength = computed((): PasswordStrength => {
   return { text, class: className, percentage, score, tips };
 });
 
-// Função auxiliar para tratar erros
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-
   if (typeof error === 'string') {
     return error;
   }
-
   try {
     return JSON.stringify(error);
   } catch {
@@ -665,53 +655,15 @@ function getErrorMessage(error: unknown): string {
   }
 }
 
-// Methods
 const nextStep = () => currentStep.value < 4 && currentStep.value++;
 const prevStep = () => currentStep.value > 1 && currentStep.value--;
 
-// Handlers OTP
-// ✅ CORREÇÃO COMPLETA - handleOtpVerify REAL
-// ✅ MANTENHA APENAS ESTES MÉTODOS:
-
+// ✅ MÉTODO CORRIGIDO: Usar apenas verifyOtpAndCompleteRegistration
 const handleOtpVerify = async (payload: { email: string; code: string }) => {
   try {
-    console.log('🔐 Verificando OTP:', payload);
+    // ✅ CORREÇÃO: Removida a variável 'result' não utilizada
+    await authStore.verifyOtpAndCompleteRegistration(payload.code);
 
-    // 1. Verificação REAL do OTP
-    const otpResult = await authStore.verifyOtp({
-      email: payload.email,
-      code: payload.code,
-    });
-
-    if (!otpResult.verified) {
-      throw new Error(otpResult.message || 'Código de verificação inválido');
-    }
-
-    console.log('✅ OTP verificado com sucesso!');
-
-    // 2. Preparar dados do registro
-    const role =
-      registerForm.value.userType === 'client' ? UserMainRole.CLIENT : UserMainRole.EMPLOYEE;
-
-    const registrationPayload = {
-      firstName: registerForm.value.firstName,
-      lastName: registerForm.value.lastName,
-      email: registerForm.value.email,
-      password: registerForm.value.password,
-      phone: registerForm.value.phone,
-      role: role,
-      subRole: registerForm.value.userType === 'owner' ? EmployeeSubRole.SALON_OWNER : undefined,
-      acceptTerms: registerForm.value.acceptedTerms,
-    } as RegisterPayload;
-
-    console.log('🚀 Completando registro...', registrationPayload);
-
-    // 3. Usar método CORRETO
-    const result = await authStore.verifyOtpAndCompleteRegistration(payload.code);
-
-    console.log('🎉 Registro completado com sucesso!', result);
-
-    // 4. Fechar popup e redirecionar
     showOtpPopup.value = false;
 
     $q.notify({
@@ -721,11 +673,8 @@ const handleOtpVerify = async (payload: { email: string; code: string }) => {
       timeout: 3000,
     });
 
-    // 5. Redirecionar para dashboard
     await router.push('/dashboard');
   } catch (error: unknown) {
-    console.error('❌ Erro na verificação OTP:', error);
-
     const errorMessage = getErrorMessage(error);
     $q.notify({
       type: 'negative',
@@ -733,18 +682,14 @@ const handleOtpVerify = async (payload: { email: string; code: string }) => {
       position: 'top',
       timeout: 5000,
     });
-
     throw error;
   }
 };
-
-// ✅ Mantenha os outros métodos (handleOtpResend, handleOtpClose, etc.)
 const handleOtpResend = async (payload: { email: string }) => {
   try {
-    console.log('Reenviando OTP para:', payload.email);
-
-    // Simulação de reenvio
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await authStore.resendOtp({
+      email: payload.email,
+    });
 
     $q.notify({
       type: 'positive',
@@ -770,19 +715,13 @@ const handleOtpClose = () => {
   });
 };
 
-// ✅ CORRIGIDO: Fluxo correto do registro
 const handleRegister = async () => {
   try {
     loading.value = true;
-    console.log('🚀 Iniciando processo de registro...');
 
-    // ✅ 1. VERIFICAR SE EMAIL JÁ EXISTE PRIMEIRO
-    console.log('🔍 Verificando disponibilidade do email...');
     const emailExists = await authStore.checkEmailExists(registerForm.value.email);
 
     if (emailExists) {
-      // ❌ SE EMAIL JÁ EXISTE - MOSTRAR ERRO E PARAR
-      console.log('❌ Email já registrado, abortando registro');
       $q.notify({
         type: 'negative',
         message: 'Este email já está registrado. Por favor, use outro email.',
@@ -792,18 +731,30 @@ const handleRegister = async () => {
       return;
     }
 
-    console.log('✅ Email disponível, enviando OTP...');
+    const role =
+      registerForm.value.userType === 'client' ? UserMainRole.CLIENT : UserMainRole.EMPLOYEE;
 
-    // ✅ 2. SE EMAIL DISPONÍVEL - ENVIAR OTP
+    const registrationPayload: RegisterPayload = {
+      firstName: registerForm.value.firstName,
+      lastName: registerForm.value.lastName,
+      email: registerForm.value.email,
+      password: registerForm.value.password,
+      phone: registerForm.value.phone,
+      role: role,
+      ...(registerForm.value.userType === 'owner' && {
+        subRole: EmployeeSubRole.SALON_OWNER,
+      }),
+      acceptTerms: registerForm.value.acceptedTerms,
+    };
+
+    await authStore.startRegistration(registrationPayload);
+
     await authStore.requestOtp({
       email: registerForm.value.email,
       purpose: 'registration',
       name: `${registerForm.value.firstName} ${registerForm.value.lastName}`,
     });
 
-    console.log('✅ OTP enviado com sucesso, abrindo popup...');
-
-    // ✅ 3. SÓ DEPOIS ABRIR POPUP OTP
     showOtpPopup.value = true;
 
     $q.notify({
@@ -812,8 +763,6 @@ const handleRegister = async () => {
       position: 'top',
     });
   } catch (error: unknown) {
-    console.error('❌ Erro no processo de registro:', error);
-
     const errorMessage = getErrorMessage(error);
     $q.notify({
       type: 'negative',
@@ -826,7 +775,6 @@ const handleRegister = async () => {
   }
 };
 </script>
-
 <style lang="scss" scoped>
 .register-form-container {
   flex: 1;
