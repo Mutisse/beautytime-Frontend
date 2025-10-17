@@ -19,6 +19,34 @@ import {
   type OtpState,
 } from '../types/auth-Types';
 
+// ✅ HELPER FUNCTION PARA TRATAR ERROS - CORRIGIDO
+const handleError = (error: unknown, defaultMessage: string): Error => {
+  console.error('❌ Erro:', error);
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  // ✅ CORREÇÃO: Type guard para verificar se é um objeto com response
+  const isErrorWithResponse = (
+    err: unknown,
+  ): err is { response: { data?: { error?: string }; status?: number } } => {
+    return typeof err === 'object' && err !== null && 'response' in err;
+  };
+
+  if (isErrorWithResponse(error)) {
+    if (error.response?.data?.error) {
+      return new Error(error.response.data.error);
+    }
+
+    if (error.response?.status === 429) {
+      return new Error('Serviço temporariamente indisponível. Tente novamente em 1-2 minutos.');
+    }
+  }
+
+  return new Error(defaultMessage);
+};
+
 class ApiServiceMapper {
   static getRegisterEndpoint(role: UserMainRole): string {
     const registerPaths = {
@@ -68,7 +96,7 @@ class ApiServiceMapper {
   }
 
   static getCheckEmailEndpoint(): string {
-    return '/api/Auth/check-email';
+    return '/api/Auth/check-email-cached';
   }
 }
 
@@ -77,6 +105,7 @@ export const useAuthStore = defineStore('auth', {
     otp: OtpState;
     pendingRegistration: RegisterPayload | null;
     isVerifyingOtp: boolean;
+    rememberMe: boolean;
   } => ({
     user: null,
     tokens: {
@@ -93,9 +122,19 @@ export const useAuthStore = defineStore('auth', {
     },
     pendingRegistration: null,
     isVerifyingOtp: false,
+    rememberMe: false,
   }),
 
   actions: {
+    setRememberMe(value: boolean): void {
+      this.rememberMe = value;
+      console.log(`🔐 "Lembrar de mim" definido como: ${value}`);
+
+      if (!value) {
+        this.clearLocalStorage();
+      }
+    },
+
     validateRegistrationData(payload: RegisterPayload): void {
       if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
         throw new Error('Nome completo é obrigatório');
@@ -121,21 +160,31 @@ export const useAuthStore = defineStore('auth', {
     async checkEmailExists(email: string): Promise<boolean> {
       try {
         const endpoint = ApiServiceMapper.getCheckEmailEndpoint();
-        const response = await api.post<ApiResponse<{ exists: boolean }>>(endpoint, { email });
+        console.log(`🔍 Verificando email: ${email}`);
+
+        const response = await api.post<
+          ApiResponse<{
+            exists: boolean;
+            fromCache?: boolean;
+            fromFallback?: boolean;
+          }>
+        >(endpoint, { email });
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao verificar email');
         }
 
+        if (response.data.data?.fromCache) {
+          console.log('✅ Email verificado via cache');
+        } else if (response.data.data?.fromFallback) {
+          console.log('⚠️  Usando cache como fallback (serviço indisponível)');
+        } else {
+          console.log('🔄 Email verificado via serviço externo');
+        }
+
         return response.data.data?.exists || false;
       } catch (error: unknown) {
-        if (error instanceof Error) {
-          if (error.message.includes('404') || error.message.includes('Not Found')) {
-            return false;
-          }
-          throw new Error('Erro ao verificar disponibilidade do email: ' + error.message);
-        }
-        throw new Error('Erro desconhecido ao verificar disponibilidade do email');
+        throw handleError(error, 'Erro ao verificar disponibilidade do email');
       }
     },
 
@@ -144,7 +193,9 @@ export const useAuthStore = defineStore('auth', {
         this.isLoading = true;
         this.validateRegistrationData(payload);
 
+        console.log(`📝 Iniciando registro para: ${payload.email}`);
         const emailExists = await this.checkEmailExists(payload.email);
+
         if (emailExists) {
           throw new Error('Este email já está registrado. Por favor, use outro email.');
         }
@@ -156,14 +207,15 @@ export const useAuthStore = defineStore('auth', {
         this.otp.attempts = 0;
         this.isVerifyingOtp = false;
 
+        console.log('✅ Email disponível, enviando OTP...');
+
         return {
           requiresOtp: true,
           otpSent: true,
           message: 'Código de verificação enviado para seu email',
         };
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro ao iniciar registro';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao iniciar registro');
       } finally {
         this.isLoading = false;
       }
@@ -187,6 +239,8 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Email não encontrado para verificação');
         }
 
+        console.log(`🔐 Verificando OTP para: ${this.otp.email}`);
+
         const endpoint = ApiServiceMapper.getOtpEndpoint('verify');
         const verifyResponse = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, {
           email: this.otp.email,
@@ -196,19 +250,20 @@ export const useAuthStore = defineStore('auth', {
 
         if (!verifyResponse.data.success) {
           this.otp.attempts += 1;
+          console.warn(`❌ OTP inválido. Tentativa: ${this.otp.attempts}`);
           throw new Error(verifyResponse.data.error || 'Código de verificação inválido');
         }
 
         this.otp.isVerified = true;
         this.otp.attempts = 0;
+        console.log('✅ OTP verificado com sucesso');
 
         const result = await this.register(this.pendingRegistration);
         this.resetOtpState();
 
         return result;
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro ao completar registro';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao completar registro');
       } finally {
         this.isLoading = false;
         this.isVerifyingOtp = false;
@@ -218,6 +273,8 @@ export const useAuthStore = defineStore('auth', {
     async requestOtp(payload: OtpRequestPayload): Promise<{ sent: boolean }> {
       try {
         const endpoint = ApiServiceMapper.getOtpEndpoint('send');
+        console.log(`📤 Enviando OTP para: ${payload.email}`);
+
         const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint, {
           email: payload.email,
           purpose: payload.purpose,
@@ -228,11 +285,10 @@ export const useAuthStore = defineStore('auth', {
           throw new Error(response.data.error || 'Erro ao enviar OTP');
         }
 
+        console.log('✅ OTP enviado com sucesso');
         return response.data.data || { sent: true };
       } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Erro ao enviar código de verificação';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao enviar código de verificação');
       }
     },
 
@@ -254,29 +310,49 @@ export const useAuthStore = defineStore('auth', {
           purpose: 'registration',
         };
 
+        console.log(`🔐 Verificando OTP para: ${payload.email}`);
         const response = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, requestData);
 
         if (!response.data.success) {
           this.otp.attempts += 1;
+          console.warn(`❌ OTP inválido. Tentativa: ${this.otp.attempts}`);
           throw new Error(response.data.error || 'Código OTP inválido');
         }
 
         this.otp.isVerified = true;
         this.otp.attempts = 0;
+        console.log('✅ OTP verificado com sucesso');
 
         return {
           verified: true,
           message: 'Código verificado com sucesso',
         };
-      } catch (error: unknown) {
+      } catch (caughtError: unknown) {
+        // ✅ CORREÇÃO: Variável renomeada para evitar conflito
+        console.error('❌ Erro na verificação do OTP:', caughtError);
+
         let errorMessage = 'Erro na verificação do código';
-        if (error instanceof Error) {
-          if (error.message.includes('400')) {
+
+        // ✅ CORREÇÃO: Type guard para erro com response
+        const isErrorWithResponse = (
+          err: unknown,
+        ): err is { response: { data?: { error?: string }; status?: number } } => {
+          return typeof err === 'object' && err !== null && 'response' in err;
+        };
+
+        if (caughtError instanceof Error) {
+          if (caughtError.message.includes('400')) {
             errorMessage = 'Código OTP inválido ou expirado';
-          } else if (error.message.includes('404')) {
+          } else if (caughtError.message.includes('404')) {
             errorMessage = 'Serviço de verificação indisponível';
+          } else if (caughtError.message.includes('429')) {
+            errorMessage = 'Muitas tentativas. Tente novamente mais tarde.';
           } else {
-            errorMessage = error.message;
+            errorMessage = caughtError.message;
+          }
+        } else if (isErrorWithResponse(caughtError)) {
+          if (caughtError.response?.data?.error) {
+            errorMessage = caughtError.response.data.error;
           }
         }
 
@@ -325,6 +401,8 @@ export const useAuthStore = defineStore('auth', {
         };
 
         const endpoint = ApiServiceMapper.getRegisterEndpoint(payload.role);
+        console.log(`👤 Registrando usuário: ${payload.email}`);
+
         const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, registerData);
 
         if (!response.data.success) {
@@ -346,16 +424,17 @@ export const useAuthStore = defineStore('auth', {
           api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         }
 
+        console.log('✅ Registro concluído com sucesso');
         return responseData;
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro ao realizar registro';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao realizar registro');
       } finally {
         this.isLoading = false;
       }
     },
 
     cancelRegistration(): void {
+      console.log('❌ Registro cancelado pelo usuário');
       this.resetOtpState();
       this.isVerifyingOtp = false;
     },
@@ -363,6 +442,8 @@ export const useAuthStore = defineStore('auth', {
     async resendOtp(payload: { email: string }): Promise<OtpResendResponse> {
       try {
         const endpoint = ApiServiceMapper.getOtpEndpoint('resend');
+        console.log(`🔄 Reenviando OTP para: ${payload.email}`);
+
         const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint, {
           email: payload.email,
           purpose: 'registration',
@@ -376,17 +457,18 @@ export const useAuthStore = defineStore('auth', {
         this.otp.attempts = 0;
         this.isVerifyingOtp = false;
 
+        console.log('✅ OTP reenviado com sucesso');
         return {
           sent: true,
           message: 'Código reenviado com sucesso',
         };
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro ao reenviar código';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao reenviar código');
       }
     },
 
     resetOtpState(): void {
+      console.log('🔄 Estado do OTP resetado');
       this.otp = {
         email: null,
         isVerified: false,
@@ -397,11 +479,19 @@ export const useAuthStore = defineStore('auth', {
       this.isVerifyingOtp = false;
     },
 
-    async login(credentials: LoginCredentials): Promise<AuthResponseData> {
+    async login(
+      credentials: LoginCredentials & { rememberMe?: boolean },
+    ): Promise<AuthResponseData> {
       try {
         this.isLoading = true;
+
+        if (credentials.rememberMe !== undefined) {
+          this.setRememberMe(credentials.rememberMe);
+        }
+
         const endpoint = ApiServiceMapper.getLoginEndpoint();
 
+        console.log(`🔐 Tentando login: ${credentials.email}`);
         const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, {
           email: credentials.email,
           password: credentials.password,
@@ -426,10 +516,10 @@ export const useAuthStore = defineStore('auth', {
           api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         }
 
+        console.log(`✅ Login realizado com sucesso | Lembrar de mim: ${this.rememberMe}`);
         return responseData;
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido no login';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro desconhecido no login');
       } finally {
         this.isLoading = false;
       }
@@ -464,7 +554,7 @@ export const useAuthStore = defineStore('auth', {
         return tokens;
       } catch (error: unknown) {
         await this.logout();
-        throw error;
+        throw handleError(error, 'Erro ao renovar token');
       }
     },
 
@@ -475,7 +565,8 @@ export const useAuthStore = defineStore('auth', {
             const endpoint = ApiServiceMapper.getLogoutEndpoint();
             await api.post(endpoint);
           } catch {
-            // Continue com logout client-side
+            // ✅ CORREÇÃO: Removida a variável não utilizada
+            console.log('ℹ️  Logout remoto falhou, continuando com logout local');
           }
         }
 
@@ -483,14 +574,18 @@ export const useAuthStore = defineStore('auth', {
         this.tokens = { accessToken: null, refreshToken: null };
         this.isInitialized = false;
         this.resetOtpState();
+        this.rememberMe = false;
         this.clearStorage();
 
         const router = useRouter();
         await router.push('/auth/login');
       } catch {
+        // ✅ CORREÇÃO: Removida a variável não utilizada
+        console.error('❌ Erro no logout');
         this.user = null;
         this.tokens = { accessToken: null, refreshToken: null };
         this.resetOtpState();
+        this.rememberMe = false;
         this.clearStorage();
       }
     },
@@ -527,7 +622,7 @@ export const useAuthStore = defineStore('auth', {
         if (error instanceof Error && error.message.includes('401')) {
           await this.logout();
         }
-        throw error;
+        throw handleError(error, 'Erro ao buscar dados do usuário');
       }
     },
 
@@ -543,9 +638,7 @@ export const useAuthStore = defineStore('auth', {
 
         return response.data.data || { success: true, message: 'Email enviado com sucesso' };
       } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Erro ao solicitar reset de senha';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao solicitar reset de senha');
       } finally {
         this.isLoading = false;
       }
@@ -566,9 +659,7 @@ export const useAuthStore = defineStore('auth', {
 
         return response.data.data || { success: true, message: 'Senha alterada com sucesso' };
       } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Erro ao confirmar reset de senha';
-        throw new Error(errorMessage);
+        throw handleError(error, 'Erro ao confirmar reset de senha');
       } finally {
         this.isLoading = false;
       }
@@ -576,18 +667,34 @@ export const useAuthStore = defineStore('auth', {
 
     loadFromStorage(): void {
       try {
-        const stored = localStorage.getItem('auth-store');
+        let stored = sessionStorage.getItem('auth-store');
+        let storageSource = 'sessionStorage';
+
+        if (!stored) {
+          const remembered = localStorage.getItem('auth-remembered');
+          if (remembered === 'true') {
+            stored = localStorage.getItem('auth-store');
+            storageSource = 'localStorage';
+            console.log('🔐 Carregando dados persistentes (Lembrar de mim ativo)');
+          }
+        }
+
         if (stored) {
-          const parsed = JSON.parse(stored) as AuthState;
+          const parsed = JSON.parse(stored) as AuthState & { rememberMe?: boolean };
           this.user = parsed.user;
           this.tokens = parsed.tokens;
           this.isInitialized = parsed.isInitialized || false;
+          this.rememberMe = parsed.rememberMe || false;
 
           if (this.tokens.accessToken) {
             api.defaults.headers.common['Authorization'] = `Bearer ${this.tokens.accessToken}`;
           }
+
+          console.log(`✅ Auth carregado do ${storageSource} | Lembrar de mim: ${this.rememberMe}`);
         }
-      } catch {
+      } catch (storageError: unknown) {
+        // ✅ CORREÇÃO: Variável renomeada
+        console.error('❌ Erro ao carregar do storage:', storageError);
         this.clearStorage();
       }
     },
@@ -599,20 +706,44 @@ export const useAuthStore = defineStore('auth', {
           tokens: this.tokens,
           isLoading: this.isLoading,
           isInitialized: this.isInitialized,
+          rememberMe: this.rememberMe,
         };
-        localStorage.setItem('auth-store', JSON.stringify(storageData));
-      } catch {
-        // Silenciosamente falha ao salvar
+
+        sessionStorage.setItem('auth-store', JSON.stringify(storageData));
+
+        if (this.rememberMe) {
+          localStorage.setItem('auth-store', JSON.stringify(storageData));
+          localStorage.setItem('auth-remembered', 'true');
+          console.log('💾 Dados salvos persistentemente (Lembrar de mim)');
+        } else {
+          this.clearLocalStorage();
+        }
+      } catch (storageError: unknown) {
+        // ✅ CORREÇÃO: Variável renomeada
+        console.error('❌ Erro ao salvar no storage:', storageError);
+      }
+    },
+
+    clearLocalStorage(): void {
+      try {
+        localStorage.removeItem('auth-store');
+        localStorage.removeItem('auth-remembered');
+        console.log('🧹 Dados persistentes removidos');
+      } catch (clearError: unknown) {
+        // ✅ CORREÇÃO: Variável renomeada
+        console.error('❌ Erro ao limpar localStorage:', clearError);
       }
     },
 
     clearStorage(): void {
       try {
-        localStorage.removeItem('auth-store');
         sessionStorage.removeItem('auth-store');
+        this.clearLocalStorage();
         delete api.defaults.headers.common['Authorization'];
-      } catch {
-        // Silenciosamente falha ao limpar
+        console.log('🧹 Todos os storages limpos');
+      } catch (clearError: unknown) {
+        // ✅ CORREÇÃO: Variável renomeada
+        console.error('❌ Erro ao limpar storage:', clearError);
       }
     },
 
@@ -629,7 +760,9 @@ export const useAuthStore = defineStore('auth', {
         }
 
         this.isInitialized = true;
-      } catch {
+      } catch (initError: unknown) {
+        // ✅ CORREÇÃO: Variável renomeada
+        console.error('❌ Erro na inicialização:', initError);
         this.clearStorage();
         this.isInitialized = true;
       }
@@ -650,6 +783,8 @@ export const useAuthStore = defineStore('auth', {
     userRole: (state): UserMainRole | undefined => state.user?.role,
     userSubRole: (state): UserSubRoleType => state.user?.subRole || undefined,
     isLoadingState: (state): boolean => state.isLoading,
+    isRememberMeActive: (state): boolean => state.rememberMe,
+
     userFullName: (state): string => {
       if (!state.user?.fullName) return '';
       const { firstName, lastName } = state.user.fullName;

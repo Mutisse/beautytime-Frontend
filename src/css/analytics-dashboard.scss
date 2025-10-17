@@ -1,0 +1,585 @@
+// src/css/analytics-dashboard.scss
+.analytics-dashboard {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  &__header {
+    margin-bottom: 30px;
+
+    h1 {
+      color: white;
+      margin: 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.9);
+      margin: 5px 0 0 0;
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  &__main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Cards de métricas - CORRIGIDO: backdrop-filter compatível
+.metric-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    0 1px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+  
+  // Fallback para browsers que não suportam backdrop-filter
+  @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.15),
+      0 3px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &--primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    
+    @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .metric-card__value {
+      color: white;
+    }
+
+    .metric-card__label {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .metric-card__title {
+      color: white;
+    }
+  }
+
+  &--success {
+    border-left: 4px solid #4caf50;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #4caf50, #81c784);
+    }
+  }
+
+  &--warning {
+    border-left: 4px solid #ff9800;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ff9800, #ffb74d);
+    }
+  }
+
+  &--info {
+    border-left: 4px solid #2196f3;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #2196f3, #64b5f6);
+    }
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: #2c3e50;
+  }
+
+  &__icon {
+    font-size: 1.5rem;
+    opacity: 0.8;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  &__value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 10px 0;
+    color: #2c3e50;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  &__label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  &__trend {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+
+    &--positive {
+      color: #4caf50;
+    }
+
+    &--negative {
+      color: #f44336;
+    }
+
+    &--neutral {
+      color: #ff9800;
+    }
+  }
+}
+
+// Gráficos e visualizações
+.chart-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    0 1px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
+  @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(236, 240, 241, 0.5);
+
+    h3 {
+      margin: 0;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 1.3rem;
+    }
+  }
+
+  &__content {
+    height: 300px;
+    position: relative;
+  }
+}
+
+// Alertas
+.alert-list {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    0 1px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
+  @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(236, 240, 241, 0.5);
+
+    h3 {
+      margin: 0;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 1.3rem;
+    }
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+    background: rgba(248, 249, 250, 0.5);
+
+    &:hover {
+      background: rgba(248, 249, 250, 0.8);
+      transform: translateX(5px);
+    }
+
+    &--critical {
+      border-left-color: #f44336;
+      background: rgba(244, 67, 54, 0.05);
+      
+      &:hover {
+        background: rgba(244, 67, 54, 0.08);
+      }
+    }
+
+    &--warning {
+      border-left-color: #ff9800;
+      background: rgba(255, 152, 0, 0.05);
+      
+      &:hover {
+        background: rgba(255, 152, 0, 0.08);
+      }
+    }
+
+    &--info {
+      border-left-color: #2196f3;
+      background: rgba(33, 150, 243, 0.05);
+      
+      &:hover {
+        background: rgba(33, 150, 243, 0.08);
+      }
+    }
+  }
+
+  &__icon {
+    margin-right: 15px;
+    font-size: 1.2rem;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0; // Prevent flex item from overflowing
+  }
+
+  &__title {
+    font-weight: 600;
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+    font-size: 1rem;
+  }
+
+  &__message {
+    margin: 0;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  &__time {
+    font-size: 0.8rem;
+    color: #bdc3c7;
+    margin-top: 5px;
+    font-weight: 400;
+  }
+}
+
+// Tabelas
+.data-table {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    0 1px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
+  @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &__header {
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(236, 240, 241, 0.5);
+
+    h3 {
+      margin: 0;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 1.3rem;
+    }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: rgba(248, 249, 250, 0.8);
+    padding: 15px 20px;
+    text-align: left;
+    font-weight: 600;
+    color: #2c3e50;
+    border-bottom: 1px solid rgba(236, 240, 241, 0.5);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(236, 240, 241, 0.5);
+    color: #2c3e50;
+    font-weight: 400;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover {
+    background: rgba(248, 249, 250, 0.5);
+  }
+}
+
+// Utilitários
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 50px;
+  flex-direction: column;
+  
+  .loading-text {
+    color: white;
+    margin-top: 15px;
+    font-size: 1.1rem;
+    font-weight: 400;
+  }
+}
+
+.error-message {
+  background: rgba(255, 235, 238, 0.9);
+  color: #c62828;
+  padding: 25px;
+  border-radius: 15px;
+  text-align: center;
+  margin: 20px 0;
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  
+  @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+    background: rgba(255, 235, 238, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  
+  .empty-icon {
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  }
+  
+  .empty-title {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  
+  .empty-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1rem;
+    font-weight: 400;
+  }
+}
+
+// Responsividade
+@media (max-width: 768px) {
+  .analytics-dashboard {
+    padding: 15px;
+
+    &__header {
+      margin-bottom: 20px;
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
+
+    &__grid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    &__main-grid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+  }
+
+  .metric-card {
+    padding: 20px;
+
+    &__value {
+      font-size: 2rem;
+    }
+
+    &__title {
+      font-size: 1rem;
+    }
+  }
+
+  .chart-container {
+    padding: 20px;
+
+    &__content {
+      height: 250px;
+    }
+
+    &__header h3 {
+      font-size: 1.1rem;
+    }
+  }
+
+  .alert-list {
+    padding: 20px;
+
+    &__header h3 {
+      font-size: 1.1rem;
+    }
+  }
+
+  .data-table {
+    &__header {
+      padding: 15px 20px;
+      
+      h3 {
+        font-size: 1.1rem;
+      }
+    }
+
+    th, td {
+      padding: 12px 15px;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Melhorias para mobile muito pequeno
+@media (max-width: 480px) {
+  .analytics-dashboard {
+    padding: 10px;
+
+    &__header h1 {
+      font-size: 1.7rem;
+    }
+  }
+
+  .metric-card {
+    padding: 15px;
+
+    &__value {
+      font-size: 1.8rem;
+    }
+  }
+
+  .chart-container,
+  .alert-list {
+    padding: 15px;
+  }
+}
+
+// Animações suaves
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.metric-card,
+.chart-container,
+.alert-list,
+.data-table {
+  animation: fadeIn 0.6s ease-out;
+}
+
+// Delay para animação em cascata
+.metric-card {
+  &:nth-child(1) { animation-delay: 0.1s; }
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.3s; }
+  &:nth-child(4) { animation-delay: 0.4s; }
+}

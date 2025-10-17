@@ -22,7 +22,15 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-
+  {
+    path: '/analytics',
+    name: 'analytics',
+    component: () => import('pages/AnalyticsPage.vue'),
+    meta: {
+      title: 'Analytics Dashboard',
+      requiresAuth: true,
+    },
+  },
   // Rotas de autenticação
   {
     path: '/auth',
@@ -31,7 +39,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'auth',
-        component: () => import('pages/auth/AuthView.vue'),
+        component: () => import('pages/errors/MaintenancePage.vue'),
         meta: {
           requiresGuest: true,
           title: 'Autenticação',
@@ -56,7 +64,6 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },*/
- 
 
   // Rotas públicas
   {
@@ -166,6 +173,22 @@ const routes: RouteRecordRaw[] = [
         },
         props: true,
       },
+    ],
+  },
+
+  {
+    path: '/manutencao',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        // ← Faltou esta chave de abertura
+        path: '',
+        name: 'Maintenance',
+        component: () => import('pages/auth/AuthView.vue'),
+        meta: {
+          title: 'Sistema em Manutenção',
+        },
+      }, // ← E esta chave de fechamento
     ],
   },
 
