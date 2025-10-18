@@ -1,3 +1,4 @@
+// src/stores/auth-store.ts
 import { defineStore } from 'pinia';
 import { api } from 'boot/axios';
 import { useRouter } from 'vue-router';
@@ -19,7 +20,10 @@ import {
   type OtpState,
 } from '../types/auth-Types';
 
-// ✅ HELPER FUNCTION PARA TRATAR ERROS - CORRIGIDO
+// ✅ IMPORTAR CONFIGURAÇÃO CENTRALIZADA DE ROTAS
+import { RouteMapper } from '../boot/api-routes';
+
+// ✅ HELPER FUNCTION PARA TRATAR ERROS
 const handleError = (error: unknown, defaultMessage: string): Error => {
   console.error('❌ Erro:', error);
 
@@ -27,7 +31,6 @@ const handleError = (error: unknown, defaultMessage: string): Error => {
     return error;
   }
 
-  // ✅ CORREÇÃO: Type guard para verificar se é um objeto com response
   const isErrorWithResponse = (
     err: unknown,
   ): err is { response: { data?: { error?: string }; status?: number } } => {
@@ -42,63 +45,14 @@ const handleError = (error: unknown, defaultMessage: string): Error => {
     if (error.response?.status === 429) {
       return new Error('Serviço temporariamente indisponível. Tente novamente em 1-2 minutos.');
     }
+
+    if (error.response?.status === 401) {
+      return new Error('Sessão expirada. Faça login novamente.');
+    }
   }
 
   return new Error(defaultMessage);
 };
-
-class ApiServiceMapper {
-  static getRegisterEndpoint(role: UserMainRole): string {
-    const registerPaths = {
-      [UserMainRole.CLIENT]: '/Users/clients/register',
-      [UserMainRole.EMPLOYEE]: '/Users/employees/register',
-      [UserMainRole.ADMINSYSTEM]: '/Users/admins/register',
-    };
-    return `/api${registerPaths[role]}`;
-  }
-
-  static getOtpEndpoint(action: 'send' | 'verify' | 'resend'): string {
-    const otpPaths = {
-      send: '/OTP/send',
-      verify: '/OTP/verify',
-      resend: '/OTP/resend',
-    };
-    return `/api${otpPaths[action]}`;
-  }
-
-  static getLoginEndpoint(): string {
-    return '/api/Auth/login';
-  }
-
-  static getRefreshTokenEndpoint(): string {
-    return '/api/Auth/refresh-token';
-  }
-
-  static getLogoutEndpoint(): string {
-    return '/api/Auth/logout';
-  }
-
-  static getProfileEndpoint(role: UserMainRole): string {
-    const profilePaths = {
-      [UserMainRole.CLIENT]: '/Users/clients/profile',
-      [UserMainRole.EMPLOYEE]: '/Users/employees/profile',
-      [UserMainRole.ADMINSYSTEM]: '/Users/admins/profile',
-    };
-    return `/api${profilePaths[role]}`;
-  }
-
-  static getForgotPasswordEndpoint(): string {
-    return '/api/Auth/forgot-password';
-  }
-
-  static getResetPasswordEndpoint(): string {
-    return '/api/Auth/reset-password';
-  }
-
-  static getCheckEmailEndpoint(): string {
-    return '/api/Auth/check-email-cached';
-  }
-}
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState & {
@@ -126,6 +80,7 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   actions: {
+    // ✅ CONFIGURAÇÃO "LEMBRAR DE MIM"
     setRememberMe(value: boolean): void {
       this.rememberMe = value;
       console.log(`🔐 "Lembrar de mim" definido como: ${value}`);
@@ -135,31 +90,38 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ VALIDAÇÃO DE DADOS DE REGISTRO
     validateRegistrationData(payload: RegisterPayload): void {
       if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
         throw new Error('Nome completo é obrigatório');
       }
+
       if (!payload.email?.trim()) {
         throw new Error('Email é obrigatório');
       }
+
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(payload.email)) {
         throw new Error('Email inválido');
       }
+
       if (!payload.password || payload.password.length < 6) {
         throw new Error('Senha deve ter pelo menos 6 caracteres');
       }
+
       if (!payload.phone?.trim()) {
         throw new Error('Telefone é obrigatório');
       }
+
       if (!payload.acceptTerms) {
         throw new Error('É necessário aceitar os termos de uso');
       }
     },
 
+    // ✅ VERIFICAR SE EMAIL EXISTE
     async checkEmailExists(email: string): Promise<boolean> {
       try {
-        const endpoint = ApiServiceMapper.getCheckEmailEndpoint();
+        const endpoint = RouteMapper.getAuthEndpoint('checkEmailCached');
         console.log(`🔍 Verificando email: ${email}`);
 
         const response = await api.post<
@@ -168,18 +130,10 @@ export const useAuthStore = defineStore('auth', {
             fromCache?: boolean;
             fromFallback?: boolean;
           }>
-        >(endpoint, { email });
+        >(endpoint.path, { email });
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao verificar email');
-        }
-
-        if (response.data.data?.fromCache) {
-          console.log('✅ Email verificado via cache');
-        } else if (response.data.data?.fromFallback) {
-          console.log('⚠️  Usando cache como fallback (serviço indisponível)');
-        } else {
-          console.log('🔄 Email verificado via serviço externo');
         }
 
         return response.data.data?.exists || false;
@@ -188,6 +142,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ INICIAR PROCESSO DE REGISTRO
     async startRegistration(payload: RegisterPayload): Promise<StartRegistrationResponse> {
       try {
         this.isLoading = true;
@@ -221,6 +176,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ VERIFICAR OTP E COMPLETAR REGISTRO
     async verifyOtpAndCompleteRegistration(otpCode: string): Promise<AuthResponseData> {
       if (this.isVerifyingOtp) {
         throw new Error('Verificação de OTP já em andamento. Aguarde...');
@@ -241,8 +197,8 @@ export const useAuthStore = defineStore('auth', {
 
         console.log(`🔐 Verificando OTP para: ${this.otp.email}`);
 
-        const endpoint = ApiServiceMapper.getOtpEndpoint('verify');
-        const verifyResponse = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, {
+        const endpoint = RouteMapper.getOtpEndpoint('verify');
+        const verifyResponse = await api.post<ApiResponse<{ verified: boolean }>>(endpoint.path, {
           email: this.otp.email,
           otpCode: otpCode,
           purpose: 'registration',
@@ -270,12 +226,13 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ SOLICITAR ENVIO DE OTP
     async requestOtp(payload: OtpRequestPayload): Promise<{ sent: boolean }> {
       try {
-        const endpoint = ApiServiceMapper.getOtpEndpoint('send');
+        const endpoint = RouteMapper.getOtpEndpoint('send');
         console.log(`📤 Enviando OTP para: ${payload.email}`);
 
-        const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint, {
+        const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint.path, {
           email: payload.email,
           purpose: payload.purpose,
           ...(payload.name && { name: payload.name }),
@@ -292,6 +249,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ VERIFICAR CÓDIGO OTP
     async verifyOtp(payload: { email: string; code: string }): Promise<OtpVerificationResponse> {
       if (this.isVerifyingOtp) {
         return {
@@ -303,7 +261,7 @@ export const useAuthStore = defineStore('auth', {
       this.isVerifyingOtp = true;
 
       try {
-        const endpoint = ApiServiceMapper.getOtpEndpoint('verify');
+        const endpoint = RouteMapper.getOtpEndpoint('verify');
         const requestData = {
           email: payload.email,
           otpCode: payload.code,
@@ -311,7 +269,10 @@ export const useAuthStore = defineStore('auth', {
         };
 
         console.log(`🔐 Verificando OTP para: ${payload.email}`);
-        const response = await api.post<ApiResponse<{ verified: boolean }>>(endpoint, requestData);
+        const response = await api.post<ApiResponse<{ verified: boolean }>>(
+          endpoint.path,
+          requestData,
+        );
 
         if (!response.data.success) {
           this.otp.attempts += 1;
@@ -328,17 +289,9 @@ export const useAuthStore = defineStore('auth', {
           message: 'Código verificado com sucesso',
         };
       } catch (caughtError: unknown) {
-        // ✅ CORREÇÃO: Variável renomeada para evitar conflito
         console.error('❌ Erro na verificação do OTP:', caughtError);
 
         let errorMessage = 'Erro na verificação do código';
-
-        // ✅ CORREÇÃO: Type guard para erro com response
-        const isErrorWithResponse = (
-          err: unknown,
-        ): err is { response: { data?: { error?: string }; status?: number } } => {
-          return typeof err === 'object' && err !== null && 'response' in err;
-        };
 
         if (caughtError instanceof Error) {
           if (caughtError.message.includes('400')) {
@@ -349,10 +302,6 @@ export const useAuthStore = defineStore('auth', {
             errorMessage = 'Muitas tentativas. Tente novamente mais tarde.';
           } else {
             errorMessage = caughtError.message;
-          }
-        } else if (isErrorWithResponse(caughtError)) {
-          if (caughtError.response?.data?.error) {
-            errorMessage = caughtError.response.data.error;
           }
         }
 
@@ -365,26 +314,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ REGISTRAR USUÁRIO
     async register(payload: RegisterPayload): Promise<AuthResponseData> {
       try {
         this.isLoading = true;
 
-        if (!payload.firstName?.trim() || !payload.lastName?.trim()) {
-          throw new Error('Nome completo é obrigatório');
-        }
-        if (!payload.email?.trim()) {
-          throw new Error('Email é obrigatório');
-        }
-        if (!payload.password) {
-          throw new Error('Senha é obrigatória');
-        }
-        if (!payload.phone?.trim()) {
-          throw new Error('Telefone é obrigatório');
-        }
-        if (!payload.acceptTerms) {
-          throw new Error('É necessário aceitar os termos de uso');
-        }
+        // ✅ Validações
+        this.validateRegistrationData(payload);
 
+        // ✅ Preparar dados
         const registerData = {
           fullName: {
             firstName: payload.firstName.trim(),
@@ -400,10 +338,11 @@ export const useAuthStore = defineStore('auth', {
             }),
         };
 
-        const endpoint = ApiServiceMapper.getRegisterEndpoint(payload.role);
+        // ✅ USANDO CONFIG CENTRAL
+        const endpoint = RouteMapper.getUserEndpoint(payload.role, 'register');
         console.log(`👤 Registrando usuário: ${payload.email}`);
 
-        const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, registerData);
+        const response = await api.post<ApiResponse<AuthResponseData>>(endpoint.path, registerData);
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro no registro');
@@ -414,12 +353,14 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Dados de resposta não encontrados');
         }
 
+        // ✅ Atualizar estado
         this.tokens.accessToken = responseData.accessToken;
         this.tokens.refreshToken = responseData.refreshToken || null;
         this.user = responseData.user;
 
         this.saveToStorage();
 
+        // ✅ Configurar header de autorização
         if (responseData.accessToken) {
           api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         }
@@ -433,18 +374,20 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ CANCELAR REGISTRO
     cancelRegistration(): void {
       console.log('❌ Registro cancelado pelo usuário');
       this.resetOtpState();
       this.isVerifyingOtp = false;
     },
 
+    // ✅ REENVIAR OTP
     async resendOtp(payload: { email: string }): Promise<OtpResendResponse> {
       try {
-        const endpoint = ApiServiceMapper.getOtpEndpoint('resend');
+        const endpoint = RouteMapper.getOtpEndpoint('resend');
         console.log(`🔄 Reenviando OTP para: ${payload.email}`);
 
-        const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint, {
+        const response = await api.post<ApiResponse<{ sent: boolean }>>(endpoint.path, {
           email: payload.email,
           purpose: 'registration',
         });
@@ -467,6 +410,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ RESETAR ESTADO DO OTP
     resetOtpState(): void {
       console.log('🔄 Estado do OTP resetado');
       this.otp = {
@@ -479,6 +423,7 @@ export const useAuthStore = defineStore('auth', {
       this.isVerifyingOtp = false;
     },
 
+    // ✅ LOGIN
     async login(
       credentials: LoginCredentials & { rememberMe?: boolean },
     ): Promise<AuthResponseData> {
@@ -489,10 +434,10 @@ export const useAuthStore = defineStore('auth', {
           this.setRememberMe(credentials.rememberMe);
         }
 
-        const endpoint = ApiServiceMapper.getLoginEndpoint();
+        const endpoint = RouteMapper.getAuthEndpoint('login');
 
         console.log(`🔐 Tentando login: ${credentials.email}`);
-        const response = await api.post<ApiResponse<AuthResponseData>>(endpoint, {
+        const response = await api.post<ApiResponse<AuthResponseData>>(endpoint.path, {
           email: credentials.email,
           password: credentials.password,
         });
@@ -506,12 +451,14 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Dados de resposta não encontrados');
         }
 
+        // ✅ Atualizar estado
         this.tokens.accessToken = responseData.accessToken;
         this.tokens.refreshToken = responseData.refreshToken || null;
         this.user = responseData.user;
 
         this.saveToStorage();
 
+        // ✅ Configurar header de autorização
         if (responseData.accessToken) {
           api.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         }
@@ -525,14 +472,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ REFRESH TOKEN
     async refreshToken(): Promise<Tokens> {
       try {
         if (!this.tokens.refreshToken) {
           throw new Error('Refresh token não disponível');
         }
 
-        const endpoint = ApiServiceMapper.getRefreshTokenEndpoint();
-        const response = await api.post<ApiResponse<Tokens>>(endpoint, {
+        const endpoint = RouteMapper.getAuthEndpoint('refreshToken');
+        const response = await api.post<ApiResponse<Tokens>>(endpoint.path, {
           refreshToken: this.tokens.refreshToken,
         });
 
@@ -545,6 +493,7 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Dados de token não encontrados');
         }
 
+        // ✅ Atualizar tokens
         this.tokens.accessToken = tokens.accessToken;
         this.tokens.refreshToken = tokens.refreshToken || this.tokens.refreshToken;
 
@@ -558,18 +507,19 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ LOGOUT
     async logout(): Promise<void> {
       try {
         if (this.tokens.accessToken) {
           try {
-            const endpoint = ApiServiceMapper.getLogoutEndpoint();
-            await api.post(endpoint);
+            const endpoint = RouteMapper.getAuthEndpoint('logout');
+            await api.post(endpoint.path);
           } catch {
-            // ✅ CORREÇÃO: Removida a variável não utilizada
             console.log('ℹ️  Logout remoto falhou, continuando com logout local');
           }
         }
 
+        // ✅ Limpar estado
         this.user = null;
         this.tokens = { accessToken: null, refreshToken: null };
         this.isInitialized = false;
@@ -577,10 +527,10 @@ export const useAuthStore = defineStore('auth', {
         this.rememberMe = false;
         this.clearStorage();
 
+        // ✅ Redirecionar para login
         const router = useRouter();
         await router.push('/auth/login');
       } catch {
-        // ✅ CORREÇÃO: Removida a variável não utilizada
         console.error('❌ Erro no logout');
         this.user = null;
         this.tokens = { accessToken: null, refreshToken: null };
@@ -590,6 +540,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ BUSCAR USUÁRIO ATUAL
     async fetchCurrentUser(): Promise<void> {
       try {
         if (!this.tokens.accessToken) {
@@ -604,8 +555,8 @@ export const useAuthStore = defineStore('auth', {
           throw new Error('Role do usuário não definida');
         }
 
-        const endpoint = ApiServiceMapper.getProfileEndpoint(this.user.role);
-        const response = await api.get<ApiResponse<UserData>>(endpoint);
+        const endpoint = RouteMapper.getUserEndpoint(this.user.role, 'profile');
+        const response = await api.get<ApiResponse<UserData>>(endpoint.path);
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao buscar usuário');
@@ -626,11 +577,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ SOLICITAR RESET DE SENHA
     async requestPasswordReset(email: string): Promise<PasswordResetResponse> {
       try {
         this.isLoading = true;
-        const endpoint = ApiServiceMapper.getForgotPasswordEndpoint();
-        const response = await api.post<ApiResponse<PasswordResetResponse>>(endpoint, { email });
+        const endpoint = RouteMapper.getAuthEndpoint('forgotPassword');
+        const response = await api.post<ApiResponse<PasswordResetResponse>>(endpoint.path, {
+          email,
+        });
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao solicitar reset de senha');
@@ -644,14 +598,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ CONFIRMAR RESET DE SENHA
     async confirmPasswordReset(payload: {
       token: string;
       newPassword: string;
     }): Promise<PasswordResetResponse> {
       try {
         this.isLoading = true;
-        const endpoint = ApiServiceMapper.getResetPasswordEndpoint();
-        const response = await api.post<ApiResponse<PasswordResetResponse>>(endpoint, payload);
+        const endpoint = RouteMapper.getAuthEndpoint('resetPassword');
+        const response = await api.post<ApiResponse<PasswordResetResponse>>(endpoint.path, payload);
 
         if (!response.data.success) {
           throw new Error(response.data.error || 'Erro ao confirmar reset de senha');
@@ -665,6 +620,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // ✅ CARREGAR DO STORAGE
     loadFromStorage(): void {
       try {
         let stored = sessionStorage.getItem('auth-store');
@@ -693,12 +649,12 @@ export const useAuthStore = defineStore('auth', {
           console.log(`✅ Auth carregado do ${storageSource} | Lembrar de mim: ${this.rememberMe}`);
         }
       } catch (storageError: unknown) {
-        // ✅ CORREÇÃO: Variável renomeada
         console.error('❌ Erro ao carregar do storage:', storageError);
         this.clearStorage();
       }
     },
 
+    // ✅ SALVAR NO STORAGE
     saveToStorage(): void {
       try {
         const storageData = {
@@ -719,22 +675,22 @@ export const useAuthStore = defineStore('auth', {
           this.clearLocalStorage();
         }
       } catch (storageError: unknown) {
-        // ✅ CORREÇÃO: Variável renomeada
         console.error('❌ Erro ao salvar no storage:', storageError);
       }
     },
 
+    // ✅ LIMPAR LOCAL STORAGE
     clearLocalStorage(): void {
       try {
         localStorage.removeItem('auth-store');
         localStorage.removeItem('auth-remembered');
         console.log('🧹 Dados persistentes removidos');
       } catch (clearError: unknown) {
-        // ✅ CORREÇÃO: Variável renomeada
         console.error('❌ Erro ao limpar localStorage:', clearError);
       }
     },
 
+    // ✅ LIMPAR TODOS OS STORAGES
     clearStorage(): void {
       try {
         sessionStorage.removeItem('auth-store');
@@ -742,11 +698,11 @@ export const useAuthStore = defineStore('auth', {
         delete api.defaults.headers.common['Authorization'];
         console.log('🧹 Todos os storages limpos');
       } catch (clearError: unknown) {
-        // ✅ CORREÇÃO: Variável renomeada
         console.error('❌ Erro ao limpar storage:', clearError);
       }
     },
 
+    // ✅ INICIALIZAR STORE
     async initialize(): Promise<void> {
       if (this.isInitialized) {
         return;
@@ -761,7 +717,6 @@ export const useAuthStore = defineStore('auth', {
 
         this.isInitialized = true;
       } catch (initError: unknown) {
-        // ✅ CORREÇÃO: Variável renomeada
         console.error('❌ Erro na inicialização:', initError);
         this.clearStorage();
         this.isInitialized = true;
@@ -770,6 +725,7 @@ export const useAuthStore = defineStore('auth', {
   },
 
   getters: {
+    // ✅ OTP STATUS
     isOtpRequired: (state): boolean => state.otp.isSent && !state.otp.isVerified,
     isOtpVerified: (state): boolean => state.otp.isVerified,
     isOtpSent: (state): boolean => state.otp.isSent,
@@ -778,6 +734,7 @@ export const useAuthStore = defineStore('auth', {
     hasPendingRegistration: (state): boolean => !!state.pendingRegistration,
     isVerifyingOtpState: (state): boolean => state.isVerifyingOtp,
 
+    // ✅ AUTH STATUS
     isAuthenticated: (state): boolean => !!state.tokens.accessToken && !!state.user,
     currentUser: (state): UserData | null => state.user,
     userRole: (state): UserMainRole | undefined => state.user?.role,
@@ -785,6 +742,7 @@ export const useAuthStore = defineStore('auth', {
     isLoadingState: (state): boolean => state.isLoading,
     isRememberMeActive: (state): boolean => state.rememberMe,
 
+    // ✅ USER INFO
     userFullName: (state): string => {
       if (!state.user?.fullName) return '';
       const { firstName, lastName } = state.user.fullName;

@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAppStore } from '../../../stores/dashboard-Store';
+import { useAppStore } from '../../../../stores/dashboard-Store';
 
 const store = useAppStore();
 </script>

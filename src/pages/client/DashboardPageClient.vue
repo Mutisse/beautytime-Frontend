@@ -25,7 +25,7 @@
 
     <!-- Layout Principal -->
     <q-page-container>
-      <q-page padding>
+      <q-page padding class="page-with-footer">
         <!-- Topbar -->
         <AppHeader
           :left-drawer-open="leftDrawerOpen"
@@ -73,6 +73,9 @@
       </q-page>
     </q-page-container>
 
+    <!-- Menu de Rodapé para Mobile -->
+    <FooterMenu v-if="$q.screen.lt.md" />
+
     <!-- Sidebar Direito (Avaliações Recentes) -->
     <q-drawer
       v-model="rightDrawerOpen"
@@ -89,20 +92,23 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
 import { useAppStore } from '../../stores/dashboard-Store';
 import { useAuthStore } from '../../stores/auth-store';
 
-// Components
+// Components - Agora dentro da pasta layout
 import NavigationMenu from '../../components/client/layout/NavigationMenu.vue';
 import AppHeader from '../../components/client/layout/AppHeader.vue';
-import WelcomeSection from '../../components/client/dashboard/WelcomeSection.vue';
-import StatusCards from '../../components/client/dashboard/StatusCards.vue';
-import NextAppointment from '../../components/client/dashboard/NextAppointment.vue';
-import ServicesSection from '../../components/client/dashboard/ServicesSection.vue';
-import PromotionsSection from '../../components/client/dashboard/PromotionsSection.vue';
-import FeedbackSection from '../../components/client/dashboard/FeedbackSection.vue';
-import RecentReviews from '../../components/client/dashboard/RecentReviews.vue';
+import FooterMenu from '../../components/client/layout/FooterMenu.vue';
+import WelcomeSection from '../../components/client/layout/dashboard/WelcomeSection.vue';
+import StatusCards from '../../components/client/layout/dashboard/StatusCards.vue';
+import NextAppointment from '../../components/client/layout/dashboard/NextAppointment.vue';
+import ServicesSection from '../../components/client/layout/dashboard/ServicesSection.vue';
+import PromotionsSection from '../../components/client/layout/dashboard/PromotionsSection.vue';
+import FeedbackSection from '../../components/client/layout/dashboard/FeedbackSection.vue';
+import RecentReviews from '../../components/client/layout/dashboard/RecentReviews.vue';
 
+const $q = useQuasar();
 const store = useAppStore();
 const authStore = useAuthStore();
 const leftDrawerOpen = ref(false);
@@ -119,7 +125,21 @@ const handleReloadData = async (): Promise<void> => {
 onMounted(() => {
   // Carregar dados apenas se o usuário estiver autenticado
   if (authStore.isAuthenticated) {
-    void store.loadUserData(); // Adicionar 'void' para evitar floating promise
+    void store.loadUserData();
   }
 });
 </script>
+
+<style scoped>
+/* Ajustar padding para acomodar o footer em mobile */
+.page-with-footer {
+  padding-bottom: 70px !important;
+}
+
+/* Em telas maiores, remover o padding extra */
+@media (min-width: 768px) {
+  .page-with-footer {
+    padding-bottom: 0 !important;
+  }
+}
+</style>

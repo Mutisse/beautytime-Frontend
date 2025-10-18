@@ -32,8 +32,8 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { useAppStore } from '../../../stores/dashboard-Store';
-import { formatFeedbackDate } from '../../../utils/formatters';
+import { useAppStore } from '../../../../stores/dashboard-Store';
+import { formatFeedbackDate } from '../../../../utils/formatters';
 
 const router = useRouter();
 const store = useAppStore();

@@ -73,8 +73,8 @@
 </template>
 
 <script setup lang="ts">
-import { useAppStore } from '../../../stores/dashboard-Store';
-import { formatFeedbackDate, getServiceIcon } from '../../../utils/formatters';
+import { useAppStore } from '../../../../stores/dashboard-Store';
+import { formatFeedbackDate, getServiceIcon } from '../../../../utils/formatters';
 
 const store = useAppStore();
 </script>

@@ -71,13 +71,13 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { useAppStore } from '../../../stores/dashboard-Store';
+import { useAppStore } from '../../../../stores/dashboard-Store';
 import {
   formatStatus,
   getStatusColor,
   formatBookingDate,
   getServiceIcon,
-} from '../../../utils/formatters';
+} from '../../../../utils/formatters';
 
 const router = useRouter();
 const store = useAppStore();

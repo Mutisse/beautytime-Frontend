@@ -1,122 +1,270 @@
+<!-- components/client/layout/NavigationMenu.vue -->
 <template>
-  <q-list padding>
-    <!-- Menu Busca -->
-    <q-expansion-item icon="search" label="Busca" default-opened header-class="text-primary">
-      <q-item clickable v-ripple :to="{ name: 'client-nearby-salons' }">
-        <q-item-section avatar>
-          <q-icon name="place" />
-        </q-item-section>
-        <q-item-section>Salões Próximos</q-item-section>
-      </q-item>
-      <q-separator />
+  <q-list padding class="menu-list">
+    <!-- Dashboard -->
+    <q-item clickable v-ripple to="/dashboard" exact>
+      <q-item-section avatar>
+        <q-icon name="dashboard" color="primary" />
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>Dashboard</q-item-label>
+      </q-item-section>
+    </q-item>
 
-      <q-item-label header class="text-caption">Filtrar por:</q-item-label>
+    <!-- Agendamentos -->
+    <q-expansion-item icon="event" label="Agendamentos" default-opened header-class="text-primary">
+      <q-list class="q-pl-md">
+        <q-item clickable v-ripple to="/agendamentos/novo">
+          <q-item-section avatar>
+            <q-icon name="add_circle" size="xs" color="green" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Novo Agendamento</q-item-label>
+          </q-item-section>
+        </q-item>
 
-      <q-item clickable v-ripple :to="{ name: 'client-favorites' }">
-        <q-item-section avatar>
-          <q-icon name="favorite" />
-        </q-item-section>
-        <q-item-section>Meus Favoritos</q-item-section>
-      </q-item>
+        <q-item clickable v-ripple to="/agendamentos/proximos">
+          <q-item-section avatar>
+            <q-icon name="schedule" size="xs" color="blue" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Próximos</q-item-label>
+          </q-item-section>
+        </q-item>
 
-      <q-item clickable v-ripple :to="{ name: 'client-filter-rating' }">
-        <q-item-section avatar>
-          <q-icon name="star" />
-        </q-item-section>
-        <q-item-section>Filtrar por Avaliação</q-item-section>
-      </q-item>
-
-      <q-item clickable v-ripple :to="{ name: 'client-promotions' }">
-        <q-item-section avatar>
-          <q-icon name="local_offer" />
-        </q-item-section>
-        <q-item-section>Promoções</q-item-section>
-      </q-item>
+        <q-item clickable v-ripple to="/agendamentos/historico">
+          <q-item-section avatar>
+            <q-icon name="history" size="xs" color="grey-6" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Histórico</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </q-expansion-item>
 
-    <!-- Menu Agenda -->
-    <q-expansion-item icon="event" label="Agenda" header-class="text-primary">
-      <q-item clickable v-ripple :to="{ name: 'client-appointments' }">
-        <q-item-section avatar>
-          <q-icon name="event_available" />
-        </q-item-section>
-        <q-item-section>Meus Agendamentos</q-item-section>
-      </q-item>
+    <!-- Serviços -->
+    <q-expansion-item icon="spa" label="Serviços" header-class="text-primary">
+      <q-list class="q-pl-md">
+        <q-item clickable v-ripple to="/servicos/explorar">
+          <q-item-section avatar>
+            <q-icon name="explore" size="xs" color="blue" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Explorar Serviços</q-item-label>
+          </q-item-section>
+        </q-item>
 
-      <q-item clickable v-ripple :to="{ name: 'client-home-service' }">
-        <q-item-section avatar>
-          <q-icon name="home" />
-        </q-item-section>
-        <q-item-section>Serviço Domiciliar</q-item-section>
-      </q-item>
+        <q-item clickable v-ripple to="/servicos/favoritos">
+          <q-item-section avatar>
+            <q-icon name="favorite" size="xs" color="red" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Serviços Favoritos</q-item-label>
+          </q-item-section>
+        </q-item>
 
-      <q-item clickable v-ripple :to="{ name: 'client-reschedule' }">
-        <q-item-section avatar>
-          <q-icon name="update" />
-        </q-item-section>
-        <q-item-section>Reagendar/Cancelar</q-item-section>
-      </q-item>
+        <q-item clickable v-ripple to="/servicos/historico">
+          <q-item-section avatar>
+            <q-icon name="assignment" size="xs" color="orange" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Histórico</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </q-expansion-item>
 
-    <!-- Menu Pagamento -->
-    <q-expansion-item icon="credit_card" label="Pagamento" header-class="text-primary">
-      <q-item clickable v-ripple :to="{ name: 'client-pay-online' }">
-        <q-item-section avatar>
-          <q-icon name="payments" />
-        </q-item-section>
-        <q-item-section>Pagar Online</q-item-section>
-      </q-item>
+    <!-- Salões -->
+    <q-expansion-item icon="store" label="Salões" header-class="text-primary">
+      <q-list class="q-pl-md">
+        <q-item clickable v-ripple to="/saloes/proximos">
+          <q-item-section avatar>
+            <q-icon name="location_on" size="xs" color="green" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Salões Próximos</q-item-label>
+          </q-item-section>
+        </q-item>
 
-      <q-item clickable v-ripple :to="{ name: 'client-payment-methods' }">
-        <q-item-section avatar>
-          <q-icon name="account_balance_wallet" />
-        </q-item-section>
-        <q-item-section>Métodos de Pagamento</q-item-section>
-      </q-item>
+        <q-item clickable v-ripple to="/saloes/favoritos">
+          <q-item-section avatar>
+            <q-icon name="favorite_border" size="xs" color="red" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Favoritos</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable v-ripple to="/saloes/avaliados">
+          <q-item-section avatar>
+            <q-icon name="star" size="xs" color="amber" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Melhores Avaliados</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </q-expansion-item>
 
-    <!-- Menu Histórico -->
-    <q-expansion-item icon="history" label="Histórico" header-class="text-primary">
-      <q-item clickable v-ripple :to="{ name: 'client-previous-services' }">
-        <q-item-section avatar>
-          <q-icon name="hourglass_empty" />
-        </q-item-section>
-        <q-item-section>Serviços Anteriores</q-item-section>
-      </q-item>
+    <!-- Promoções -->
+    <q-item clickable v-ripple to="/promocoes">
+      <q-item-section avatar>
+        <q-icon name="local_offer" color="orange" />
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>Promoções</q-item-label>
+      </q-item-section>
+      <q-item-section side>
+        <q-badge v-if="activePromotionsCount > 0" color="red" rounded>
+          {{ activePromotionsCount }}
+        </q-badge>
+      </q-item-section>
+    </q-item>
 
-      <q-item clickable v-ripple :to="{ name: 'client-given-ratings' }">
-        <q-item-section avatar>
-          <q-icon name="star_rate" />
-        </q-item-section>
-        <q-item-section>Avaliações Feitas</q-item-section>
-      </q-item>
+    <!-- Pagamentos -->
+    <q-expansion-item icon="payments" label="Pagamentos" header-class="text-primary">
+      <q-list class="q-pl-md">
+        <q-item clickable v-ripple to="/pagamentos/metodos">
+          <q-item-section avatar>
+            <q-icon name="credit_card" size="xs" color="blue" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Métodos de Pagamento</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable v-ripple to="/pagamentos/historico">
+          <q-item-section avatar>
+            <q-icon name="receipt" size="xs" color="green" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Histórico</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable v-ripple to="/pagamentos/cupons">
+          <q-item-section avatar>
+            <q-icon name="confirmation_number" size="xs" color="purple" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Cupons de Desconto</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </q-expansion-item>
 
-    <!-- Menu Configurações -->
-    <q-expansion-item icon="settings" label="Configurações" header-class="text-primary">
+    <!-- Avaliações -->
+    <q-expansion-item icon="reviews" label="Avaliações" header-class="text-primary">
+      <q-list class="q-pl-md">
+        <q-item clickable v-ripple to="/avaliacoes/minhas">
+          <q-item-section avatar>
+            <q-icon name="rate_review" size="xs" color="amber" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Minhas Avaliações</q-item-label>
+          </q-item-section>
+        </q-item>
 
-
-      <q-item clickable v-ripple :to="{ name: 'client-privacy' }">
-        <q-item-section avatar>
-          <q-icon name="lock" />
-        </q-item-section>
-        <q-item-section>Privacidade e Segurança</q-item-section>
-      </q-item>
-
-      <q-item clickable v-ripple :to="{ name: 'client-preferences' }">
-        <q-item-section avatar>
-          <q-icon name="tune" />
-        </q-item-section>
-        <q-item-section>Preferências</q-item-section>
-      </q-item>
-
-      <q-item clickable v-ripple :to="{ name: 'client-help' }">
-        <q-item-section avatar>
-          <q-icon name="help" />
-        </q-item-section>
-        <q-item-section>Ajuda e Suporte</q-item-section>
-      </q-item>
+        <q-item clickable v-ripple to="/avaliacoes/pendentes">
+          <q-item-section avatar>
+            <q-icon name="pending_actions" size="xs" color="orange" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Avaliar Serviços</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
     </q-expansion-item>
+
+    <!-- Suporte -->
+    <q-expansion-item icon="support_agent" label="Suporte" header-class="text-primary">
+      <q-list class="q-pl-md">
+        <q-item clickable v-ripple to="/suporte/chat">
+          <q-item-section avatar>
+            <q-icon name="chat" size="xs" color="blue" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Chat com Suporte</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable v-ripple to="/suporte/faq">
+          <q-item-section avatar>
+            <q-icon name="help" size="xs" color="green" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Perguntas Frequentes</q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item clickable v-ripple to="/suporte/central-ajuda">
+          <q-item-section avatar>
+            <q-icon name="contact_support" size="xs" color="purple" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Central de Ajuda</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </q-expansion-item>
+
+    <!-- Perfil -->
+    <q-item clickable v-ripple to="/perfil">
+      <q-item-section avatar>
+        <q-icon name="person" color="primary" />
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>Meu Perfil</q-item-label>
+      </q-item-section>
+    </q-item>
+
+    <!-- Configurações -->
+    <q-item clickable v-ripple to="/configuracoes">
+      <q-item-section avatar>
+        <q-icon name="settings" color="grey-6" />
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>Configurações</q-item-label>
+      </q-item-section>
+    </q-item>
   </q-list>
 </template>
 
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useAppStore } from '../../../stores/dashboard-Store';
+
+const store = useAppStore();
+
+// Apenas propriedades que EXISTEM na store
+const activePromotionsCount = computed(() => {
+  if (!store.promotions || store.promotions.length === 0) return 0;
+
+  const now = new Date();
+  return store.promotions.filter((p) => {
+    const validUntil = new Date(p.validUntil);
+    return validUntil > now;
+  }).length;
+});
+</script>
+
+<style scoped>
+.menu-list .q-item {
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.menu-list .q-expansion-item {
+  border-radius: 8px;
+}
+
+.menu-list .q-expansion-item__content .q-item {
+  padding-left: 16px;
+}
+
+/* Cor do texto dos expansion items quando abertos */
+:deep(.q-expansion-item--expanded .q-item__section--avatar .q-icon) {
+  color: inherit;
+}
+</style>
