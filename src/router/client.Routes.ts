@@ -20,202 +20,7 @@ const clientRoutes: RouteRecordRaw[] = [
           requiredRole: 'client',
         },
       },
-
-      // ========== AGENDAMENTOS ==========
-      {
-        path: 'agendamentos/novo',
-        name: 'novo-agendamento',
-        component: () => import('pages/client/agendamentos/NewBookingPage.vue'),
-        meta: {
-          title: 'Novo Agendamento',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'agendamentos/proximos',
-        name: 'proximos-agendamentos',
-        component: () => import('pages/client/agendamentos/UpcomingAppointmentsPage.vue'),
-        meta: {
-          title: 'Próximos Agendamentos',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'agendamentos/historico',
-        name: 'historico-agendamentos',
-        component: () => import('pages/client/agendamentos/AppointmentHistoryPage.vue'),
-        meta: {
-          title: 'Histórico de Agendamentos',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== SERVIÇOS ==========
-      {
-        path: 'servicos/explorar',
-        name: 'explorar-servicos',
-        component: () => import('pages/client/servicos/ExploreServicesPage.vue'),
-        meta: {
-          title: 'Explorar Serviços',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'servicos/favoritos',
-        name: 'servicos-favoritos',
-        component: () => import('pages/client/servicos/FavoriteServicesPage.vue'),
-        meta: {
-          title: 'Serviços Favoritos',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'servicos/historico',
-        name: 'historico-servicos',
-        component: () => import('pages/client/servicos/ServiceHistoryPage.vue'),
-        meta: {
-          title: 'Histórico de Serviços',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== SALÕES ==========
-      {
-        path: 'saloes/proximos',
-        name: 'saloes-proximos',
-        component: () => import('pages/client/saloes/NearbySalonsPage.vue'),
-        meta: {
-          title: 'Salões Próximos',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'saloes/favoritos',
-        name: 'saloes-favoritos',
-        component: () => import('pages/client/saloes/FavoriteSalonsPage.vue'),
-        meta: {
-          title: 'Salões Favoritos',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'saloes/avaliados',
-        name: 'saloes-avaliados',
-        component: () => import('pages/client/saloes/TopRatedSalonsPage.vue'),
-        meta: {
-          title: 'Melhores Avaliados',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== PROMOÇÕES ==========
-      {
-        path: 'promocoes',
-        name: 'client-promotions',
-        component: () => import('pages/client/PromotionsPage.vue'),
-        meta: {
-          title: 'Promoções',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== PAGAMENTOS ==========
-      {
-        path: 'pagamentos/metodos',
-        name: 'metodos-pagamento',
-        component: () => import('pages/client/pagamentos/PaymentMethodsPage.vue'),
-        meta: {
-          title: 'Métodos de Pagamento',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'pagamentos/historico',
-        name: 'historico-pagamentos',
-        component: () => import('pages/client/pagamentos/PaymentHistoryPage.vue'),
-        meta: {
-          title: 'Histórico de Pagamentos',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'pagamentos/cupons',
-        name: 'cupons-desconto',
-        component: () => import('pages/client/pagamentos/CouponsPage.vue'),
-        meta: {
-          title: 'Cupons de Desconto',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== AVALIAÇÕES ==========
-      {
-        path: 'avaliacoes/minhas',
-        name: 'minhas-avaliacoes',
-        component: () => import('pages/client/avaliacoes/MyReviewsPage.vue'),
-        meta: {
-          title: 'Minhas Avaliações',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'avaliacoes/pendentes',
-        name: 'avaliacoes-pendentes',
-        component: () => import('pages/client/avaliacoes/PendingReviewsPage.vue'),
-        meta: {
-          title: 'Avaliações Pendentes',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== SUPORTE ==========
-      {
-        path: 'suporte/chat',
-        name: 'chat-suporte',
-        component: () => import('pages/client/suporte/SupportChatPage.vue'),
-        meta: {
-          title: 'Chat com Suporte',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'suporte/faq',
-        name: 'faq-suporte',
-        component: () => import('pages/client/suporte/FAQPage.vue'),
-        meta: {
-          title: 'Perguntas Frequentes',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-      {
-        path: 'suporte/central-ajuda',
-        name: 'central-ajuda',
-        component: () => import('pages/client/suporte/HelpCenterPage.vue'),
-        meta: {
-          title: 'Central de Ajuda',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== PERFIL E CONFIGURAÇÕES ==========
+      // Rotas do Menu Perfil
       {
         path: 'profile',
         name: 'client-profile',
@@ -227,18 +32,6 @@ const clientRoutes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'configuracoes',
-        name: 'configuracoes',
-        component: () => import('pages/client/ConfiguracoesPage.vue'),
-        meta: {
-          title: 'Configurações',
-          requiresAuth: true,
-          requiredRole: 'client',
-        },
-      },
-
-      // ========== ROTAS EXISTENTES (mantidas) ==========
-      {
         path: 'history',
         name: 'client-history',
         component: () => import('pages/client/HistoryPage.vue'),
@@ -248,6 +41,7 @@ const clientRoutes: RouteRecordRaw[] = [
           requiredRole: 'client',
         },
       },
+      // Rotas do Menu Busca
       {
         path: 'saloes-proximos',
         name: 'client-nearby-salons',
@@ -290,6 +84,38 @@ const clientRoutes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'promocoes',
+        name: 'client-promotions',
+        component: () => import('pages/client/PromotionsPage.vue'),
+        meta: {
+          title: 'Promoções',
+          requiresAuth: true,
+          requiredRole: 'client',
+        },
+      },
+      // Rotas do Menu Agenda
+      /*{
+        path: 'servico-domiciliar',
+        name: 'client-home-service',
+        component: () => import('pages/client/HomeServicePage.vue'),
+        meta: {
+          title: 'Serviço Domiciliar',
+          requiresAuth: true,
+          requiredRole: 'client',
+        },
+      },
+      {
+        path: 'reagendar',
+        name: 'client-reschedule',
+        component: () => import('pages/client/ReschedulePage.vue'),
+        meta: {
+          title: 'Reagendar/Cancelar',
+          requiresAuth: true,
+          requiredRole: 'client',
+        },
+      },*/
+      // Rotas do Menu Pagamento
+      {
         path: 'pagar-online',
         name: 'client-pay-online',
         component: () => import('pages/client/PayOnlinePage.vue'),
@@ -309,6 +135,28 @@ const clientRoutes: RouteRecordRaw[] = [
           requiredRole: 'client',
         },
       },
+      // Rotas do Menu Histórico
+      /*{
+        path: 'servicos-anteriores',
+        name: 'client-previous-services',
+        component: () => import('pages/client/PreviousServicesPage.vue'),
+        meta: {
+          title: 'Serviços Anteriores',
+          requiresAuth: true,
+          requiredRole: 'client',
+        },
+      },
+      {
+        path: 'avaliacoes-feitas',
+        name: 'client-given-ratings',
+        component: () => import('pages/client/GivenRatingsPage.vue'),
+        meta: {
+          title: 'Avaliações Feitas',
+          requiresAuth: true,
+          requiredRole: 'client',
+        },
+      },*/
+      // Rotas do Menu Configurações
       {
         path: 'notificacoes',
         name: 'client-notifications',

@@ -1,19 +1,20 @@
 <!-- components/client/layout/FooterMenu.vue -->
 <template>
   <q-footer elevated class="bg-white text-primary footer-menu">
-    <div class="text-center q-py-sm bg-yellow-2 text-red">
-      ⚠️ RODAPÉ VISÍVEL - Tamanho da tela: {{ $q.screen.name }}
-    </div>
-
     <q-tabs
       v-model="selectedTab"
       active-color="primary"
       indicator-color="primary"
-      class="text-grey-8"
+      class="text-grey-8 footer-tabs"
       dense
     >
       <!-- Agendar Rápido -->
-      <q-route-tab name="quick-book" icon="add_circle" :to="{ name: 'quick-booking' }" exact>
+      <q-route-tab
+        name="quick-book"
+        icon="add_circle"
+        :to="{ name: 'novo-agendamento' }"
+        exact
+      >
         <div class="column items-center q-py-xs">
           <q-icon name="add_circle" size="24px" color="positive" />
           <div class="text-caption q-mt-xs">Agendar</div>
@@ -21,7 +22,12 @@
       </q-route-tab>
 
       <!-- Salões Próximos -->
-      <q-route-tab name="nearby" icon="location_on" :to="{ name: 'saloes-proximos' }" exact>
+      <q-route-tab
+        name="nearby"
+        icon="location_on"
+        :to="{ name: 'saloes-proximos' }"
+        exact
+      >
         <div class="column items-center q-py-xs">
           <q-icon name="location_on" size="20px" color="primary" />
           <div class="text-caption q-mt-xs">Salões</div>
@@ -29,9 +35,19 @@
       </q-route-tab>
 
       <!-- Agendamentos -->
-      <q-route-tab name="appointments" icon="event" :to="{ name: 'meus-agendamentos' }" exact>
+      <q-route-tab
+        name="appointments"
+        icon="event"
+        :to="{ name: 'proximos-agendamentos' }"
+        exact
+      >
         <div class="column items-center q-py-xs">
-          <q-badge v-if="upcomingAppointmentsCount > 0" color="blue" floating rounded>
+          <q-badge
+            v-if="upcomingAppointmentsCount > 0"
+            color="blue"
+            floating
+            rounded
+          >
             {{ upcomingAppointmentsCount }}
           </q-badge>
           <q-icon name="event" size="20px" color="blue" />
@@ -40,7 +56,12 @@
       </q-route-tab>
 
       <!-- Favoritos -->
-      <q-route-tab name="favorites" icon="favorite" :to="{ name: 'favoritos' }" exact>
+      <q-route-tab
+        name="favorites"
+        icon="favorite"
+        :to="{ name: 'saloes-favoritos' }"
+        exact
+      >
         <div class="column items-center q-py-xs">
           <q-icon name="favorite" size="20px" color="red" />
           <div class="text-caption q-mt-xs">Favoritos</div>
@@ -48,7 +69,12 @@
       </q-route-tab>
 
       <!-- Perfil -->
-      <q-route-tab name="profile" icon="person" :to="{ name: 'perfil' }" exact>
+      <q-route-tab
+        name="profile"
+        icon="person"
+        :to="{ name: 'client-profile' }"
+        exact
+      >
         <div class="column items-center q-py-xs">
           <q-icon name="person" size="20px" color="grey-7" />
           <div class="text-caption q-mt-xs">Perfil</div>
@@ -59,11 +85,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useQuasar } from 'quasar';
+import { ref, computed } from 'vue';
 import { useAppStore } from '../../../stores/dashboard-Store';
 
-const $q = useQuasar();
 const store = useAppStore();
 const selectedTab = ref('home');
 
@@ -71,42 +95,53 @@ const selectedTab = ref('home');
 const upcomingAppointmentsCount = computed(() => {
   return store.upcomingAppointments?.length || 0;
 });
-
-onMounted(() => {
-  console.log('🔍 FooterMenu montado - Tamanho da tela:', $q.screen.name);
-  console.log('🔍 Screen lt.md:', $q.screen.lt.md);
-  console.log('🔍 Screen lt.lg:', $q.screen.lt.lg);
-});
 </script>
 
 <style scoped>
 .footer-menu {
   border-top: 1px solid #e0e0e0;
-  height: 70px; /* Aumentei um pouco para melhor visualização */
+  height: 70px;
+  position: fixed !important;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
-:deep(.q-tabs) {
+/* Garantir que as tabs ocupem todo o espaço */
+:deep(.footer-tabs) {
   min-height: 70px;
   height: 70px;
+  width: 100%;
 }
 
-:deep(.q-tab) {
+:deep(.footer-tabs .q-tab) {
   min-height: 70px;
   padding: 6px 8px;
+  flex: 1;
+  max-width: none;
 }
 
-:deep(.q-tab__icon) {
+:deep(.footer-tabs .q-tab__icon) {
   margin-bottom: 2px;
   font-size: 20px;
 }
 
-:deep(.q-tab__indicator) {
+:deep(.footer-tabs .q-tab__indicator) {
   height: 3px;
 }
 
-:deep(.text-caption) {
+:deep(.footer-tabs .text-caption) {
   font-size: 11px;
   line-height: 1.2;
   font-weight: 500;
+}
+
+/* Ajustar o badge de notificação */
+:deep(.q-badge--floating) {
+  top: 8px;
+  right: 50%;
+  transform: translateX(50%);
 }
 </style>
