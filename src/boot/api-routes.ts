@@ -349,20 +349,6 @@ export const API_ROUTES: ApiRouteConfig = {
   },
 };
 
-// ✅ ATUALIZAR OS TYPES NO route-types.ts
-// Adicione esta interface no seu arquivo route-types.ts:
-/*
-export interface ApiRouteConfig {
-  // ... outros
-  email: {
-    checkEmailCached: ApiEndpoint;
-    checkEmail: ApiEndpoint;
-  };
-  // ... outros
-}
-
-export type EmailRouteKey = keyof ApiRouteConfig['email'];
-*/
 
 // ✅ HELPER FUNCTIONS - ATUALIZADO COM EMAIL
 export class RouteMapper {
